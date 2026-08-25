@@ -1,0 +1,10 @@
+google-adk
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic==2.10.4
+pydantic-settings==2.7.1
+google-cloud-firestore==2.20.0
+google-genai==1.2.0
+pypdf==5.1.0
+python-dotenv==1.0.1

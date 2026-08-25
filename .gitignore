@@ -1,0 +1,20 @@
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+backend/*.egg-info/
+
+# Google Cloud / secrets
+service-account*.json
+*-credentials.json
+
+# OS
+.DS_Store
+Thumbs.db
