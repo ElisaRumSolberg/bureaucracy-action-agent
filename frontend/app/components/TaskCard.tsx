@@ -1,10 +1,17 @@
 import type { Task } from "@/lib/api";
+import { isBlocked } from "@/lib/taskGraph";
 
 const PRIORITY_STYLES: Record<Task["priority"], string> = {
   high: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-950 dark:text-red-300 dark:ring-red-500/30",
   medium:
     "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
   low: "bg-zinc-100 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-500/30",
+};
+
+const RISK_STYLES: Record<Task["priority"], string> = {
+  high: "text-red-600 dark:text-red-400",
+  medium: "text-amber-600 dark:text-amber-400",
+  low: "text-zinc-500 dark:text-zinc-400",
 };
 
 function formatDeadline(deadline: string | null): string {
@@ -15,6 +22,13 @@ function formatDeadline(deadline: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function confidenceLabel(confidence: number): { label: string; needsVerification: boolean } {
+  const pct = Math.round(confidence * 100);
+  if (pct >= 90) return { label: "High confidence", needsVerification: false };
+  if (pct >= 70) return { label: "Medium confidence", needsVerification: false };
+  return { label: "Needs verification", needsVerification: true };
 }
 
 interface Props {
@@ -29,6 +43,8 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
     (depIndex) => allTasks[depIndex]?.title ?? `Task ${depIndex + 1}`
   );
   const isDone = task.status === "done";
+  const blocked = !isDone && isBlocked(allTasks, index);
+  const confidence = confidenceLabel(task.confidence);
 
   return (
     <div
@@ -46,13 +62,27 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
             onChange={() => onToggleDone(task)}
             className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-300 dark:border-zinc-600"
           />
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${PRIORITY_STYLES[task.priority]}`}
-          >
-            {task.priority.toUpperCase()} PRIORITY
+          <span className="flex flex-col gap-1">
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${PRIORITY_STYLES[task.priority]}`}
+            >
+              {task.priority.toUpperCase()} PRIORITY
+            </span>
+            {task.priority_reason && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                {task.priority_reason}
+              </span>
+            )}
           </span>
         </label>
-        <span className="text-xs text-zinc-400">Task {index + 1}</span>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="text-xs text-zinc-400">Task {index + 1}</span>
+          {blocked && (
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+              🔒 Blocked
+            </span>
+          )}
+        </div>
       </div>
 
       <h3
@@ -74,6 +104,17 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
           </dd>
         </div>
         <div>
+          <dt className="text-xs uppercase tracking-wide text-zinc-400">Risk</dt>
+          <dd className={`mt-0.5 font-medium ${RISK_STYLES[task.risk_level]}`}>
+            {task.risk_level.toUpperCase()}
+            {task.risk_reason && (
+              <span className="block text-xs font-normal text-zinc-500 dark:text-zinc-400">
+                {task.risk_reason}
+              </span>
+            )}
+          </dd>
+        </div>
+        <div>
           <dt className="text-xs uppercase tracking-wide text-zinc-400">
             Depends on
           </dt>
@@ -81,7 +122,7 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
             {dependencyTitles.length > 0 ? dependencyTitles.join(", ") : "Nothing"}
           </dd>
         </div>
-        <div className="col-span-2">
+        <div>
           <dt className="text-xs uppercase tracking-wide text-zinc-400">
             Required documents
           </dt>
@@ -93,16 +134,36 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
         </div>
       </dl>
 
-      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
-        <span className="text-xs text-zinc-400">
-          Confidence {Math.round(task.confidence * 100)}%
-        </span>
-        <details className="text-xs text-zinc-500">
-          <summary className="cursor-pointer select-none">Source</summary>
-          <p className="mt-1 max-w-xs text-right italic text-zinc-500">
-            &ldquo;{task.source_excerpt}&rdquo;
-          </p>
-        </details>
+      <div className="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+        <div className="flex items-center gap-2 text-xs">
+          {confidence.needsVerification && <span>⚠</span>}
+          <span
+            className={
+              confidence.needsVerification
+                ? "font-medium text-amber-600 dark:text-amber-400"
+                : "text-zinc-400"
+            }
+          >
+            {confidence.label} ({Math.round(task.confidence * 100)}%)
+          </span>
+        </div>
+        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <div
+            className={`h-full rounded-full ${confidence.needsVerification ? "bg-amber-500" : "bg-emerald-500"}`}
+            style={{ width: `${Math.round(task.confidence * 100)}%` }}
+          />
+        </div>
+
+        {task.source_excerpt && (
+          <details className="group mt-3">
+            <summary className="cursor-pointer select-none text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Source evidence
+            </summary>
+            <p className="mt-2 rounded-lg bg-zinc-50 p-3 text-xs italic leading-5 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+              &ldquo;{task.source_excerpt}&rdquo;
+            </p>
+          </details>
+        )}
       </div>
     </div>
   );
