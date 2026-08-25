@@ -18,9 +18,12 @@ export default function Home() {
   const [stage, setStage] = useState<Stage>("upload");
   const [result, setResult] = useState<UploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [isReprocessing, setIsReprocessing] = useState(false);
 
   async function handleFileSelected(file: File, targetLanguage?: string) {
     setErrorMessage(null);
+    setCurrentFile(file);
     setStage("processing");
     try {
       const uploadResult = await uploadDocument(file, targetLanguage);
@@ -31,6 +34,21 @@ export default function Home() {
         error instanceof ApiError ? error.message : "Something went wrong. Please try again."
       );
       setStage("upload");
+    }
+  }
+
+  async function handleChangeLanguage(targetLanguage: string | undefined) {
+    if (!currentFile || isReprocessing) return;
+    setIsReprocessing(true);
+    try {
+      const uploadResult = await uploadDocument(currentFile, targetLanguage);
+      setResult(uploadResult);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsReprocessing(false);
     }
   }
 
@@ -66,6 +84,7 @@ export default function Home() {
   function reset() {
     setResult(null);
     setErrorMessage(null);
+    setCurrentFile(null);
     setStage("upload");
   }
 
@@ -84,7 +103,13 @@ export default function Home() {
       )}
       {stage === "processing" && <ProcessingScreen />}
       {stage === "results" && result && (
-        <ResultsScreen result={result} onReset={reset} onToggleTask={handleToggleTask} />
+        <ResultsScreen
+          result={result}
+          onReset={reset}
+          onToggleTask={handleToggleTask}
+          onChangeLanguage={handleChangeLanguage}
+          isReprocessing={isReprocessing}
+        />
       )}
     </div>
   );

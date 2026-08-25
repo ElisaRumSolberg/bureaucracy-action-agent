@@ -1,17 +1,28 @@
 import type { Task, UploadResult } from "@/lib/api";
 import TaskCard from "./TaskCard";
+import LanguageSelect from "./LanguageSelect";
 
 interface Props {
   result: UploadResult;
   onReset: () => void;
   onToggleTask: (task: Task) => void;
+  onChangeLanguage: (language: string | undefined) => void;
+  isReprocessing: boolean;
 }
 
-export default function ResultsScreen({ result, onReset, onToggleTask }: Props) {
+export default function ResultsScreen({
+  result,
+  onReset,
+  onToggleTask,
+  onChangeLanguage,
+  isReprocessing,
+}: Props) {
   const doneCount = result.tasks.filter((t) => t.status === "done").length;
 
   return (
-    <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-16">
+    <div
+      className={`mx-auto w-full max-w-4xl flex-1 px-6 py-16 transition-opacity ${isReprocessing ? "pointer-events-none opacity-50" : ""}`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-zinc-400">Action plan</p>
@@ -26,6 +37,13 @@ export default function ResultsScreen({ result, onReset, onToggleTask }: Props) 
               {doneCount} of {result.tasks.length} tasks done
             </p>
           )}
+          <div className="mt-3">
+            <LanguageSelect
+              label={isReprocessing ? "Translating…" : "Explain in"}
+              onChange={onChangeLanguage}
+              compact
+            />
+          </div>
         </div>
         <button
           onClick={onReset}

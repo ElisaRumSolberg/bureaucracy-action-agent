@@ -1,35 +1,22 @@
 "use client";
 
 import { useRef, useState } from "react";
+import LanguageSelect from "./LanguageSelect";
 
 interface Props {
   onFileSelected: (file: File, targetLanguage?: string) => void;
   errorMessage: string | null;
 }
 
-const LANGUAGE_OPTIONS = [
-  { value: "", label: "Match the document's language" },
-  { value: "English", label: "English" },
-  { value: "Türkçe", label: "Türkçe" },
-  { value: "Norsk", label: "Norsk" },
-  { value: "Deutsch", label: "Deutsch" },
-  { value: "Français", label: "Français" },
-  { value: "Español", label: "Español" },
-  { value: "__custom__", label: "Other…" },
-];
-
 export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [languageChoice, setLanguageChoice] = useState("");
-  const [customLanguage, setCustomLanguage] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState<string | undefined>(undefined);
 
   function handleFiles(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    const targetLanguage =
-      languageChoice === "__custom__" ? customLanguage.trim() : languageChoice;
-    onFileSelected(file, targetLanguage || undefined);
+    onFileSelected(file, targetLanguage);
   }
 
   return (
@@ -44,35 +31,7 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
         </p>
       </div>
 
-      <div className="flex w-full flex-col items-center gap-2">
-        <label
-          htmlFor="language-select"
-          className="text-xs font-medium uppercase tracking-wide text-zinc-500"
-        >
-          Explain the results in
-        </label>
-        <select
-          id="language-select"
-          value={languageChoice}
-          onChange={(e) => setLanguageChoice(e.target.value)}
-          className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-        >
-          {LANGUAGE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {languageChoice === "__custom__" && (
-          <input
-            type="text"
-            value={customLanguage}
-            onChange={(e) => setCustomLanguage(e.target.value)}
-            placeholder="e.g. Italiano, 日本語, العربية"
-            className="w-56 rounded-full border border-zinc-300 bg-white px-4 py-2 text-center text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-          />
-        )}
-      </div>
+      <LanguageSelect label="Explain the results in" onChange={setTargetLanguage} />
 
       <div
         onDragOver={(e) => {
