@@ -8,6 +8,8 @@ interface Props {
   errorMessage: string | null;
 }
 
+const FLOW_STEPS = ["Upload", "Extract actions", "Detect deadlines", "Build workflow"];
+
 export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -22,7 +24,10 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-8 px-6 py-24 text-center">
       <div>
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
+        <span className="inline-flex items-center rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+          Powered by Gemini + Google ADK
+        </span>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
           Turn complex official documents into clear actions.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-lg leading-7 text-zinc-600 dark:text-zinc-400">
@@ -66,9 +71,10 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
           />
         </svg>
         <p className="font-medium text-zinc-900 dark:text-zinc-100">
-          Drop a document here, or click to browse
+          Upload an official document
         </p>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-zinc-500">or drag and drop here</p>
+        <p className="text-xs text-zinc-400">
           PDF, Word, PowerPoint, text, or a photo of a document — one at a time
         </p>
         <input
@@ -78,6 +84,21 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
+      </div>
+
+      <p className="text-xs text-zinc-400">
+        Try with: a university letter, government notice, or insurance document
+      </p>
+
+      <div className="flex w-full flex-wrap items-center justify-center gap-x-2 gap-y-2 text-xs text-zinc-500 dark:text-zinc-400">
+        {FLOW_STEPS.map((step, index) => (
+          <span key={step} className="flex items-center gap-2">
+            <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+              {step}
+            </span>
+            {index < FLOW_STEPS.length - 1 && <span className="text-zinc-300 dark:text-zinc-700">→</span>}
+          </span>
+        ))}
       </div>
 
       {errorMessage && (
