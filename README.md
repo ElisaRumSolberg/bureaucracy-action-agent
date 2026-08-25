@@ -60,10 +60,12 @@ via `google.adk.tools.FunctionTool`:
 
 ## Google Technologies Used
 
-- Gemini (structured output)
-- Google ADK (agent orchestration)
+- Google ADK (`LlmAgent` + `FunctionTool`, see `backend/app/agent/adk_agent.py`) —
+  real agent orchestration, not a bare Gemini call.
+- Gemini 2.5 Flash via Vertex AI (`gemini-2.5-flash` is the newest model
+  available in this project's Model Garden — nothing newer exists there yet).
 - Firestore (task/document storage)
-- Cloud Run (deployment)
+- Cloud Run (deployment, both frontend and backend)
 
 ## Firestore Data Model
 
@@ -146,7 +148,8 @@ gcloud run services update bureaucracy-agent-api \
 
 - Only PDF documents are supported in the MVP.
 - No OCR — scanned image-only PDFs will not extract text.
-- English-language documents only for the MVP.
+- Supports multilingual document analysis and output-language selection.
+  Testing has focused on English, Turkish, and Norwegian documents.
 
 ## Safety
 
