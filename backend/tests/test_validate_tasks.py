@@ -127,6 +127,16 @@ def test_invalid_dependency_index_dropped_with_warning():
     assert any("invalid dependency" in w for w in result.warnings)
 
 
+def test_natural_language_deadline_is_normalized_to_iso():
+    """Gemini sometimes ignores the ISO-format instruction; fall back gracefully."""
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[make_task(title="Upload passport", deadline="August 29, 2026")],
+    )
+    result = validate_tasks(extraction)
+    assert result.tasks[0].deadline == "2026-08-29"
+
+
 def test_unparseable_deadline_becomes_null_with_warning():
     extraction = ExtractionResult(
         document_summary="s",

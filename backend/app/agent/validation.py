@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone
 
+from dateutil import parser as dateutil_parser
+
 LOW_CONFIDENCE_THRESHOLD = 0.5
 HIGH_PRIORITY_DAYS = 3
 MEDIUM_PRIORITY_DAYS = 14
@@ -12,6 +14,13 @@ def normalize_deadline(raw: str | None, warnings: list[str], title: str) -> str 
     try:
         return datetime.fromisoformat(raw).date().isoformat()
     except ValueError:
+        pass
+    try:
+        # Model didn't follow the ISO 8601 instruction — fall back to a
+        # lenient parse (e.g. "August 29, 2026") rather than discard a
+        # real, explicitly-stated deadline.
+        return dateutil_parser.parse(raw).date().isoformat()
+    except (ValueError, OverflowError):
         warnings.append(
             f"Could not parse deadline '{raw}' for task '{title}' — treated as no deadline."
         )

@@ -1,8 +1,10 @@
+import io
 import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 from app.agent.tools import extract_document_actions, save_tasks, validate_tasks
 from app.firestore_client import get_firestore_client
@@ -12,10 +14,21 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 def _extract_pdf_text(file_bytes: bytes) -> str:
-    import io
+    try:
+        reader = PdfReader(io.BytesIO(file_bytes))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    except PdfReadError as exc:
+        raise HTTPException(
+            status_code=422, detail="We could not read this document."
+        ) from exc
 
-    reader = PdfReader(io.BytesIO(file_bytes))
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+def _extract_with_retry(document_text: str):
+    try:
+        return extract_document_actions(document_text)
+    except Exception:  # noqa: BLE001
+        logger.warning("Gemini extraction failed, retrying once", exc_info=True)
+        return extract_document_actions(document_text)
 
 
 @router.post("/upload")
@@ -39,7 +52,7 @@ async def upload_document(file: UploadFile):
     )
 
     try:
-        extraction = extract_document_actions(document_text)
+        extraction = _extract_with_retry(document_text)
         validation = validate_tasks(extraction)
         result = save_tasks(document_id, validation)
     except Exception as exc:  # noqa: BLE001
@@ -59,11 +72,15 @@ async def upload_document(file: UploadFile):
         }
     )
 
+    warnings = list(validation.warnings)
+    if not validation.tasks:
+        warnings.append("No explicit required actions were detected.")
+
     return {
         "document_id": document_id,
         "summary": extraction.document_summary,
         "tasks": [t.model_dump() for t in validation.tasks],
-        "warnings": validation.warnings,
+        "warnings": warnings,
         "missing_information": validation.missing_information,
         "saved_task_ids": result.saved_task_ids,
     }
