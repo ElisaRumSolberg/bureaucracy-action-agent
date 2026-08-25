@@ -19,16 +19,21 @@ class ExtractionResult(BaseModel):
     tasks: list[Task]
     warnings: list[str] = []
     missing_information: list[str] = []
+    consequences: list[str] = []
 
 
 class ValidatedTask(Task):
     status: str = "todo"
+    priority_reason: str = ""
+    risk_level: str = "low"  # high | medium | low
+    risk_reason: str = ""
 
 
 class ValidationResult(BaseModel):
     tasks: list[ValidatedTask]
     warnings: list[str] = []
     missing_information: list[str] = []
+    consequences: list[str] = []
 
 
 class SaveTasksResult(BaseModel):

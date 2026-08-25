@@ -4,6 +4,7 @@ from app.agent.validation import (
     flag_low_confidence,
     normalize_deadline,
     resolve_priority,
+    resolve_risk,
     today_utc,
 )
 from app.firestore_client import get_firestore_client
@@ -59,10 +60,17 @@ def validate_tasks(extraction: ExtractionResult) -> ValidationResult:
     for index, task in enumerate(deduped):
         deadline = normalize_deadline(task.deadline, warnings, task.title)
         flag_low_confidence(task.confidence, task.title, warnings)
-        priority = resolve_priority(
+        blocks_task = index in blocks_another_task
+        priority, priority_reason = resolve_priority(
             deadline=deadline,
             gemini_priority=task.priority,
-            blocks_another_task=index in blocks_another_task,
+            blocks_another_task=blocks_task,
+            today=today,
+        )
+        risk_level, risk_reason = resolve_risk(
+            deadline=deadline,
+            blocks_another_task=blocks_task,
+            confidence=task.confidence,
             today=today,
         )
         validated.append(
@@ -74,6 +82,9 @@ def validate_tasks(extraction: ExtractionResult) -> ValidationResult:
                     "dependencies": remapped_dependencies[index],
                 },
                 status="todo",
+                priority_reason=priority_reason,
+                risk_level=risk_level,
+                risk_reason=risk_reason,
             )
         )
 
@@ -81,6 +92,7 @@ def validate_tasks(extraction: ExtractionResult) -> ValidationResult:
         tasks=validated,
         warnings=warnings,
         missing_information=extraction.missing_information,
+        consequences=extraction.consequences,
     )
 
 

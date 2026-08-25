@@ -6,6 +6,9 @@ export interface Task {
   description: string;
   deadline: string | null;
   priority: Priority;
+  priority_reason: string;
+  risk_level: Priority;
+  risk_reason: string;
   dependencies: number[];
   required_documents: string[];
   confidence: number;
@@ -19,6 +22,7 @@ export interface UploadResult {
   tasks: Task[];
   warnings: string[];
   missing_information: string[];
+  consequences: string[];
   saved_task_ids: string[];
 }
 

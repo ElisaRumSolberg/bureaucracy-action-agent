@@ -27,23 +27,62 @@ def normalize_deadline(raw: str | None, warnings: list[str], title: str) -> str 
         return None
 
 
+def _days_label(days_until: int) -> str:
+    if days_until < 0:
+        return "Overdue"
+    if days_until == 0:
+        return "Due today"
+    if days_until == 1:
+        return "Due in 1 day"
+    return f"Due in {days_until} days"
+
+
 def resolve_priority(
     deadline: str | None, gemini_priority: str, blocks_another_task: bool, today: date
-) -> str:
+) -> tuple[str, str]:
     """Backend priority check: deadline proximity and blocking status win over
-    Gemini's guess when they disagree, per the plan's priority rules."""
+    Gemini's guess when they disagree, per the plan's priority rules.
+
+    Returns (priority, reason) — the reason is always backend-computed so the
+    UI can explain *why*, without trusting the model to justify itself.
+    """
     if blocks_another_task:
-        return "high"
+        return "high", "Blocks another task"
 
     if deadline is None:
-        return gemini_priority if gemini_priority in ("low", "medium") else "low"
+        if gemini_priority == "medium":
+            return "medium", "Important but not time-bound"
+        return "low", "No deadline or urgency stated"
 
     days_until = (date.fromisoformat(deadline) - today).days
     if days_until <= HIGH_PRIORITY_DAYS:
-        return "high"
+        return "high", _days_label(days_until)
     if days_until <= MEDIUM_PRIORITY_DAYS:
-        return "medium"
-    return "low"
+        return "medium", _days_label(days_until)
+    return "low", f"Deadline is {days_until} days away"
+
+
+def resolve_risk(
+    deadline: str | None,
+    blocks_another_task: bool,
+    confidence: float,
+    today: date,
+) -> tuple[str, str]:
+    """Risk is priority's sibling: it also weighs extraction confidence, so a
+    vague/uncertain task can be flagged even when it has no near deadline."""
+    days_until = (date.fromisoformat(deadline) - today).days if deadline else None
+
+    if blocks_another_task:
+        return "high", "Blocks other tasks — a delay here cascades."
+    if days_until is not None and days_until <= HIGH_PRIORITY_DAYS:
+        return "high", "Deadline is very close."
+    if confidence < LOW_CONFIDENCE_THRESHOLD:
+        return "medium", "Low extraction confidence — verify against the source."
+    if days_until is None:
+        return "medium", "No explicit deadline was stated."
+    if days_until <= MEDIUM_PRIORITY_DAYS:
+        return "medium", _days_label(days_until)
+    return "low", "No immediate risk detected."
 
 
 def flag_low_confidence(confidence: float, title: str, warnings: list[str]) -> None:

@@ -145,3 +145,49 @@ def test_unparseable_deadline_becomes_null_with_warning():
     result = validate_tasks(extraction)
     assert result.tasks[0].deadline is None
     assert any("Could not parse deadline" in w for w in result.warnings)
+
+
+def test_blocking_task_has_priority_and_risk_reason():
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[
+            make_task(title="Upload passport", deadline=None, priority="low"),
+            make_task(title="Complete form", dependencies=[0], priority="low"),
+        ],
+    )
+    result = validate_tasks(extraction)
+    blocker = result.tasks[0]
+    assert blocker.priority_reason == "Blocks another task"
+    assert blocker.risk_level == "high"
+    assert "cascades" in blocker.risk_reason.lower()
+
+
+def test_near_deadline_gives_days_based_reason():
+    soon = (today_utc() + timedelta(days=2)).isoformat()
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[make_task(title="Urgent thing", deadline=soon, priority="low")],
+    )
+    result = validate_tasks(extraction)
+    assert "2 days" in result.tasks[0].priority_reason
+    assert result.tasks[0].risk_level == "high"
+
+
+def test_low_confidence_task_flagged_medium_risk_even_without_deadline():
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[make_task(title="Vague thing", deadline=None, confidence=0.3)],
+    )
+    result = validate_tasks(extraction)
+    assert result.tasks[0].risk_level == "medium"
+    assert "confidence" in result.tasks[0].risk_reason.lower()
+
+
+def test_consequences_pass_through_from_extraction():
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[make_task()],
+        consequences=["Your application may be delayed."],
+    )
+    result = validate_tasks(extraction)
+    assert result.consequences == ["Your application may be delayed."]

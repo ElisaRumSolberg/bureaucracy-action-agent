@@ -1,38 +1,37 @@
-import io
 import logging
 import uuid
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
 
 from app.agent.adk_agent import run_agent_pipeline
+from app.agent.document_extraction import (
+    SUPPORTED_CONTENT_TYPES,
+    DocumentReadError,
+    extract_document_content,
+)
 from app.firestore_client import get_firestore_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
-def _extract_pdf_text(file_bytes: bytes) -> str:
-    try:
-        reader = PdfReader(io.BytesIO(file_bytes))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
-    except PdfReadError as exc:
-        raise HTTPException(
-            status_code=422, detail="We could not read this document."
-        ) from exc
-
-
 @router.post("/upload")
 async def upload_document(file: UploadFile, target_language: str | None = Form(None)):
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    if file.content_type not in SUPPORTED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file type. Upload a PDF, Word document, PowerPoint "
+            "file, plain text file, or an image (JPEG/PNG/WEBP).",
+        )
 
     file_bytes = await file.read()
-    document_text = _extract_pdf_text(file_bytes)
+    try:
+        content = extract_document_content(file_bytes, file.content_type)
+    except DocumentReadError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    if not document_text.strip():
+    if not content.is_image and not (content.text or "").strip():
         raise HTTPException(status_code=422, detail="We could not read this document.")
 
     document_id = f"doc_{uuid.uuid4().hex[:8]}"
@@ -46,7 +45,11 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
 
     try:
         document_summary, validation, result = await run_agent_pipeline(
-            document_text, document_id, target_language
+            content.text,
+            document_id,
+            target_language,
+            image_bytes=content.image_bytes,
+            image_mime_type=content.image_mime_type,
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("Agent pipeline failed for document %s", document_id)
@@ -80,6 +83,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
         "tasks": tasks_with_ids,
         "warnings": warnings,
         "missing_information": validation.missing_information,
+        "consequences": validation.consequences,
         "saved_task_ids": result.saved_task_ids,
     }
 

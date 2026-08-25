@@ -66,13 +66,15 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
           />
         </svg>
         <p className="font-medium text-zinc-900 dark:text-zinc-100">
-          Drop a PDF here, or click to browse
+          Drop a document here, or click to browse
         </p>
-        <p className="text-sm text-zinc-500">PDF only, one document at a time</p>
+        <p className="text-sm text-zinc-500">
+          PDF, Word, PowerPoint, text, or a photo of a document — one at a time
+        </p>
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,.docx,.pptx,text/plain,image/jpeg,image/png,image/webp"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />

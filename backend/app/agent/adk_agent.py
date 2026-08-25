@@ -27,6 +27,7 @@ def _build_tools(document_id: str, state: _PipelineState) -> list[FunctionTool]:
         tasks: list[Task],
         warnings: list[str],
         missing_information: list[str],
+        consequences: list[str],
     ) -> dict:
         """Validates and normalizes the extracted tasks (dedupe, dates, priority).
 
@@ -34,12 +35,16 @@ def _build_tools(document_id: str, state: _PipelineState) -> list[FunctionTool]:
             tasks: the raw tasks you extracted from the document.
             warnings: warnings about ambiguous or uncertain information.
             missing_information: information the document doesn't state.
+            consequences: explicit consequences of non-compliance stated in
+                the document (e.g. "your application may be delayed"). Empty
+                list if the document doesn't state any.
         """
         extraction = ExtractionResult(
             document_summary="",
             tasks=tasks,
             warnings=warnings,
             missing_information=missing_information,
+            consequences=consequences,
         )
         state.validation = validate_tasks(extraction)
         return {
@@ -60,8 +65,28 @@ def _build_tools(document_id: str, state: _PipelineState) -> list[FunctionTool]:
     return [FunctionTool(validate_tasks_tool), FunctionTool(save_tasks_tool)]
 
 
+def _build_content(
+    document_text: str | None, image_bytes: bytes | None, image_mime_type: str | None
+) -> types.Content:
+    if image_bytes:
+        return types.Content(
+            role="user",
+            parts=[
+                types.Part.from_bytes(data=image_bytes, mime_type=image_mime_type),
+                types.Part(text="Analyze the document shown in the image above."),
+            ],
+        )
+    return types.Content(
+        role="user", parts=[types.Part(text=f"Document text:\n{document_text}")]
+    )
+
+
 async def _run_once(
-    document_text: str, document_id: str, target_language: str | None
+    document_text: str | None,
+    document_id: str,
+    target_language: str | None,
+    image_bytes: bytes | None = None,
+    image_mime_type: str | None = None,
 ) -> tuple[str, ValidationResult, SaveTasksResult]:
     state = _PipelineState()
     agent = LlmAgent(
@@ -76,9 +101,7 @@ async def _run_once(
     )
 
     final_text = ""
-    content = types.Content(
-        role="user", parts=[types.Part(text=f"Document text:\n{document_text}")]
-    )
+    content = _build_content(document_text, image_bytes, image_mime_type)
     async for event in runner.run_async(
         user_id="api", session_id=session.id, new_message=content
     ):
@@ -96,10 +119,15 @@ async def _run_once(
 
 
 async def run_agent_pipeline(
-    document_text: str, document_id: str, target_language: str | None = None
+    document_text: str | None,
+    document_id: str,
+    target_language: str | None = None,
+    image_bytes: bytes | None = None,
+    image_mime_type: str | None = None,
 ) -> tuple[str, ValidationResult, SaveTasksResult]:
     """Runs the extraction/validation/save agent pipeline once, retrying once on failure."""
+    args = (document_text, document_id, target_language, image_bytes, image_mime_type)
     try:
-        return await _run_once(document_text, document_id, target_language)
+        return await _run_once(*args)
     except Exception:
-        return await _run_once(document_text, document_id, target_language)
+        return await _run_once(*args)
