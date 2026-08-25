@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile
@@ -6,6 +7,7 @@ from pypdf import PdfReader
 from app.agent.tools import extract_document_actions, save_tasks, validate_tasks
 from app.firestore_client import get_firestore_client
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
@@ -41,6 +43,7 @@ async def upload_document(file: UploadFile):
         validation = validate_tasks(extraction)
         result = save_tasks(document_id, validation)
     except Exception as exc:  # noqa: BLE001
+        logger.exception("Agent pipeline failed for document %s", document_id)
         db.collection("documents").document(document_id).update(
             {"status": "failed", "agentRunStatus": "error"}
         )

@@ -19,7 +19,11 @@ _client = None
 def _gemini_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = genai.Client(api_key=settings.gemini_api_key)
+        _client = genai.Client(
+            vertexai=True,
+            project=settings.google_cloud_project,
+            location=settings.google_cloud_location,
+        )
     return _client
 
 
