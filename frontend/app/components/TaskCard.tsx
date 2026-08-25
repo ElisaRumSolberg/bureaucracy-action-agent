@@ -1,5 +1,6 @@
 import type { Task } from "@/lib/api";
 import { isBlocked } from "@/lib/taskGraph";
+import { translateReason } from "@/lib/reasonTranslations";
 
 const PRIORITY_STYLES: Record<Task["priority"], string> = {
   high: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-950 dark:text-red-300 dark:ring-red-500/30",
@@ -36,9 +37,10 @@ interface Props {
   index: number;
   allTasks: Task[];
   onToggleDone: (task: Task) => void;
+  language?: string;
 }
 
-export default function TaskCard({ task, index, allTasks, onToggleDone }: Props) {
+export default function TaskCard({ task, index, allTasks, onToggleDone, language }: Props) {
   const dependencyTitles = task.dependencies.map(
     (depIndex) => allTasks[depIndex]?.title ?? `Task ${depIndex + 1}`
   );
@@ -70,7 +72,7 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
             </span>
             {task.priority_reason && (
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {task.priority_reason}
+                {translateReason(task.priority_reason, language)}
               </span>
             )}
           </span>
@@ -109,7 +111,7 @@ export default function TaskCard({ task, index, allTasks, onToggleDone }: Props)
             {task.risk_level.toUpperCase()}
             {task.risk_reason && (
               <span className="block text-xs font-normal text-zinc-500 dark:text-zinc-400">
-                {task.risk_reason}
+                {translateReason(task.risk_reason, language)}
               </span>
             )}
           </dd>

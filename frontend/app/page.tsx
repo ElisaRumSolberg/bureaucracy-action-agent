@@ -20,6 +20,7 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
+  const [resultLanguage, setResultLanguage] = useState<string | undefined>(undefined);
 
   async function handleFileSelected(file: File, targetLanguage?: string) {
     setErrorMessage(null);
@@ -28,6 +29,7 @@ export default function Home() {
     try {
       const uploadResult = await uploadDocument(file, targetLanguage);
       setResult(uploadResult);
+      setResultLanguage(targetLanguage);
       setStage("results");
     } catch (error) {
       setErrorMessage(
@@ -43,6 +45,7 @@ export default function Home() {
     try {
       const uploadResult = await uploadDocument(currentFile, targetLanguage);
       setResult(uploadResult);
+      setResultLanguage(targetLanguage);
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError ? error.message : "Something went wrong. Please try again."
@@ -109,6 +112,7 @@ export default function Home() {
           onToggleTask={handleToggleTask}
           onChangeLanguage={handleChangeLanguage}
           isReprocessing={isReprocessing}
+          language={resultLanguage}
         />
       )}
     </div>

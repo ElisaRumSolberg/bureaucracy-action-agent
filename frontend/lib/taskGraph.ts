@@ -18,7 +18,12 @@ const PRIORITY_RANK: Record<Task["priority"], number> = { high: 0, medium: 1, lo
 export interface NextBestAction {
   task: Task;
   index: number;
-  reason: string;
+  /** priority_reason as-is, plus how many other tasks this one blocks — the
+   * UI layer builds the final sentence so it can localize the join word and
+   * the "blocks N tasks" phrase. */
+  priorityReason: string;
+  blocksCount: number;
+  mentionsBlockingAlready: boolean;
 }
 
 export function getNextBestAction(tasks: Task[]): NextBestAction | null {
@@ -42,12 +47,13 @@ export function getNextBestAction(tasks: Task[]): NextBestAction | null {
   });
 
   const best = eligible[0];
-  const blocks = blockingCount(tasks, best.index);
-  const reasonParts = [best.task.priority_reason || `${best.task.priority} priority`];
-  const alreadyMentionsBlocking = reasonParts[0].toLowerCase().includes("block");
-  if (blocks > 0 && !alreadyMentionsBlocking) {
-    reasonParts.push(`blocks ${blocks} other task${blocks > 1 ? "s" : ""}`);
-  }
+  const priorityReason = best.task.priority_reason || `${best.task.priority} priority`;
 
-  return { task: best.task, index: best.index, reason: reasonParts.join(", and ") };
+  return {
+    task: best.task,
+    index: best.index,
+    priorityReason,
+    blocksCount: blockingCount(tasks, best.index),
+    mentionsBlockingAlready: priorityReason.toLowerCase().includes("block"),
+  };
 }

@@ -11,6 +11,7 @@ interface Props {
   onToggleTask: (task: Task) => void;
   onChangeLanguage: (language: string | undefined) => void;
   isReprocessing: boolean;
+  language?: string;
 }
 
 export default function ResultsScreen({
@@ -19,6 +20,7 @@ export default function ResultsScreen({
   onToggleTask,
   onChangeLanguage,
   isReprocessing,
+  language,
 }: Props) {
   const doneCount = result.tasks.filter((t) => t.status === "done").length;
   const deadlineCount = result.tasks.filter((t) => t.deadline).length;
@@ -94,7 +96,7 @@ export default function ResultsScreen({
 
       {result.tasks.length > 0 && (
         <div className="mt-6">
-          <NextBestAction tasks={result.tasks} />
+          <NextBestAction tasks={result.tasks} language={language} />
         </div>
       )}
 
@@ -145,6 +147,7 @@ export default function ResultsScreen({
             index={index}
             allTasks={result.tasks}
             onToggleDone={onToggleTask}
+            language={language}
           />
         ))}
       </div>

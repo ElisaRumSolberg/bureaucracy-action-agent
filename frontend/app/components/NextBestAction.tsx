@@ -1,11 +1,13 @@
 import { getNextBestAction } from "@/lib/taskGraph";
+import { localizedJoin, translateBlocksCount, translateReason } from "@/lib/reasonTranslations";
 import type { Task } from "@/lib/api";
 
 interface Props {
   tasks: Task[];
+  language?: string;
 }
 
-export default function NextBestAction({ tasks }: Props) {
+export default function NextBestAction({ tasks, language }: Props) {
   const next = getNextBestAction(tasks);
 
   if (!next) {
@@ -24,6 +26,12 @@ export default function NextBestAction({ tasks }: Props) {
     );
   }
 
+  const reasonParts = [translateReason(next.priorityReason, language)];
+  if (next.blocksCount > 0 && !next.mentionsBlockingAlready) {
+    reasonParts.push(translateBlocksCount(next.blocksCount, language));
+  }
+  const reason = localizedJoin(reasonParts, language);
+
   return (
     <div className="rounded-2xl border border-zinc-900 bg-zinc-900 p-5 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
       <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
@@ -34,7 +42,7 @@ export default function NextBestAction({ tasks }: Props) {
       </h3>
       <p className="mt-2 text-sm text-zinc-300 dark:text-zinc-600">
         <span className="font-medium text-zinc-100 dark:text-zinc-800">Why?</span>{" "}
-        {next.reason}.
+        {reason}.
       </p>
     </div>
   );
