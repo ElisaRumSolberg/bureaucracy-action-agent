@@ -61,10 +61,11 @@ See `backend/app/models/schemas.py` for the task/document shape.
 
 ```bash
 cd backend
-python -m venv venv
-venv/Scripts/activate   # Windows
+python -m venv .venv
+.venv/Scripts/activate   # Windows
 pip install -r requirements.txt
-cp .env.example .env    # fill in GEMINI_API_KEY and GOOGLE_CLOUD_PROJECT
+gcloud auth application-default login   # Gemini/Firestore auth (ADC, no API key needed)
+cp .env.example .env                    # fill in GOOGLE_CLOUD_PROJECT
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -73,6 +74,7 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
+cp .env.local.example .env.local   # points at the backend, defaults to localhost:8000
 npm run dev
 ```
 
