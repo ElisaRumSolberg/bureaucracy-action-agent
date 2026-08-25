@@ -3,7 +3,7 @@ import uuid
 
 from google import genai
 
-from app.agent.prompts import SYSTEM_PROMPT
+from app.agent.prompts import SYSTEM_PROMPT, language_instruction
 from app.agent.validation import (
     flag_low_confidence,
     normalize_deadline,
@@ -34,11 +34,14 @@ def _gemini_client() -> genai.Client:
     return _client
 
 
-def extract_document_actions(document_text: str) -> ExtractionResult:
+def extract_document_actions(
+    document_text: str, target_language: str | None = None
+) -> ExtractionResult:
     """Tool 1: convert raw document text into structured actions/deadlines/docs."""
+    prompt = SYSTEM_PROMPT + language_instruction(target_language)
     response = _gemini_client().models.generate_content(
         model=settings.gemini_model,
-        contents=f"{SYSTEM_PROMPT}\n\nDocument text:\n{document_text}",
+        contents=f"{prompt}\n\nDocument text:\n{document_text}",
         config={
             "response_mime_type": "application/json",
             "response_schema": ExtractionResult,

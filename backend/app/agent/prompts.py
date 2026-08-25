@@ -23,3 +23,21 @@ Priority rules:
 
 dependencies must reference the zero-based index of other tasks in the same output array.
 """
+
+LANGUAGE_INSTRUCTION_AUTO = (
+    "\nWrite document_summary, all task titles, descriptions, warnings, and "
+    "missing_information in the same language as the document text above. "
+    "Keep deadline values as ISO 8601 dates regardless of language."
+)
+
+LANGUAGE_INSTRUCTION_FIXED = (
+    "\nWrite document_summary, all task titles, descriptions, warnings, and "
+    "missing_information in {language}, regardless of what language the "
+    "document itself is written in. Keep deadline values as ISO 8601 dates."
+)
+
+
+def language_instruction(target_language: str | None) -> str:
+    if target_language:
+        return LANGUAGE_INSTRUCTION_FIXED.format(language=target_language)
+    return LANGUAGE_INSTRUCTION_AUTO

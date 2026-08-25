@@ -4,7 +4,13 @@ import { useState } from "react";
 import UploadScreen from "./components/UploadScreen";
 import ProcessingScreen from "./components/ProcessingScreen";
 import ResultsScreen from "./components/ResultsScreen";
-import { ApiError, uploadDocument, type UploadResult } from "@/lib/api";
+import {
+  ApiError,
+  updateTaskStatus,
+  uploadDocument,
+  type Task,
+  type UploadResult,
+} from "@/lib/api";
 
 type Stage = "upload" | "processing" | "results";
 
@@ -13,11 +19,11 @@ export default function Home() {
   const [result, setResult] = useState<UploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  async function handleFileSelected(file: File) {
+  async function handleFileSelected(file: File, targetLanguage?: string) {
     setErrorMessage(null);
     setStage("processing");
     try {
-      const uploadResult = await uploadDocument(file);
+      const uploadResult = await uploadDocument(file, targetLanguage);
       setResult(uploadResult);
       setStage("results");
     } catch (error) {
@@ -25,6 +31,35 @@ export default function Home() {
         error instanceof ApiError ? error.message : "Something went wrong. Please try again."
       );
       setStage("upload");
+    }
+  }
+
+  async function handleToggleTask(task: Task) {
+    const nextStatus = task.status === "done" ? "todo" : "done";
+    setResult((current) =>
+      current
+        ? {
+            ...current,
+            tasks: current.tasks.map((t) =>
+              t.id === task.id ? { ...t, status: nextStatus } : t
+            ),
+          }
+        : current
+    );
+    try {
+      await updateTaskStatus(task.id, nextStatus);
+    } catch {
+      // Revert on failure — the backend is the source of truth.
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              tasks: current.tasks.map((t) =>
+                t.id === task.id ? { ...t, status: task.status } : t
+              ),
+            }
+          : current
+      );
     }
   }
 
@@ -49,7 +84,7 @@ export default function Home() {
       )}
       {stage === "processing" && <ProcessingScreen />}
       {stage === "results" && result && (
-        <ResultsScreen result={result} onReset={reset} />
+        <ResultsScreen result={result} onReset={reset} onToggleTask={handleToggleTask} />
       )}
     </div>
   );

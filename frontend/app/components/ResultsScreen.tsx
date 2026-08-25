@@ -1,12 +1,15 @@
-import type { UploadResult } from "@/lib/api";
+import type { Task, UploadResult } from "@/lib/api";
 import TaskCard from "./TaskCard";
 
 interface Props {
   result: UploadResult;
   onReset: () => void;
+  onToggleTask: (task: Task) => void;
 }
 
-export default function ResultsScreen({ result, onReset }: Props) {
+export default function ResultsScreen({ result, onReset, onToggleTask }: Props) {
+  const doneCount = result.tasks.filter((t) => t.status === "done").length;
+
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-16">
       <div className="flex items-start justify-between gap-4">
@@ -18,6 +21,11 @@ export default function ResultsScreen({ result, onReset }: Props) {
           <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">
             {result.summary}
           </p>
+          {result.tasks.length > 0 && (
+            <p className="mt-2 text-sm font-medium text-zinc-500">
+              {doneCount} of {result.tasks.length} tasks done
+            </p>
+          )}
         </div>
         <button
           onClick={onReset}
@@ -51,7 +59,13 @@ export default function ResultsScreen({ result, onReset }: Props) {
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {result.tasks.map((task, index) => (
-          <TaskCard key={task.title} task={task} index={index} allTasks={result.tasks} />
+          <TaskCard
+            key={task.id}
+            task={task}
+            index={index}
+            allTasks={result.tasks}
+            onToggleDone={onToggleTask}
+          />
         ))}
       </div>
 

@@ -1,6 +1,7 @@
 export type Priority = "high" | "medium" | "low";
 
 export interface Task {
+  id: string;
   title: string;
   description: string;
   deadline: string | null;
@@ -25,9 +26,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {}
 
-export async function uploadDocument(file: File): Promise<UploadResult> {
+export async function uploadDocument(
+  file: File,
+  targetLanguage?: string
+): Promise<UploadResult> {
   const formData = new FormData();
   formData.append("file", file);
+  if (targetLanguage) formData.append("target_language", targetLanguage);
 
   const response = await fetch(`${API_URL}/documents/upload`, {
     method: "POST",
@@ -40,4 +45,20 @@ export async function uploadDocument(file: File): Promise<UploadResult> {
   }
 
   return response.json();
+}
+
+export async function updateTaskStatus(
+  taskId: string,
+  status: "todo" | "done"
+): Promise<void> {
+  const response = await fetch(`${API_URL}/documents/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not update task status.");
+  }
 }

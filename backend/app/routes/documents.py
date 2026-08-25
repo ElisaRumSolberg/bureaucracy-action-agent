@@ -2,7 +2,8 @@ import io
 import logging
 import uuid
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Form, HTTPException, UploadFile
+from pydantic import BaseModel
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
@@ -23,16 +24,16 @@ def _extract_pdf_text(file_bytes: bytes) -> str:
         ) from exc
 
 
-def _extract_with_retry(document_text: str):
+def _extract_with_retry(document_text: str, target_language: str | None):
     try:
-        return extract_document_actions(document_text)
+        return extract_document_actions(document_text, target_language)
     except Exception:  # noqa: BLE001
         logger.warning("Gemini extraction failed, retrying once", exc_info=True)
-        return extract_document_actions(document_text)
+        return extract_document_actions(document_text, target_language)
 
 
 @router.post("/upload")
-async def upload_document(file: UploadFile):
+async def upload_document(file: UploadFile, target_language: str | None = Form(None)):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
@@ -52,7 +53,7 @@ async def upload_document(file: UploadFile):
     )
 
     try:
-        extraction = _extract_with_retry(document_text)
+        extraction = _extract_with_retry(document_text, target_language)
         validation = validate_tasks(extraction)
         result = save_tasks(document_id, validation)
     except Exception as exc:  # noqa: BLE001
@@ -76,11 +77,34 @@ async def upload_document(file: UploadFile):
     if not validation.tasks:
         warnings.append("No explicit required actions were detected.")
 
+    tasks_with_ids = [
+        {"id": task_id, **task.model_dump()}
+        for task_id, task in zip(result.saved_task_ids, validation.tasks)
+    ]
+
     return {
         "document_id": document_id,
         "summary": extraction.document_summary,
-        "tasks": [t.model_dump() for t in validation.tasks],
+        "tasks": tasks_with_ids,
         "warnings": warnings,
         "missing_information": validation.missing_information,
         "saved_task_ids": result.saved_task_ids,
     }
+
+
+class TaskStatusUpdate(BaseModel):
+    status: str
+
+
+@router.patch("/tasks/{task_id}")
+def update_task_status(task_id: str, body: TaskStatusUpdate):
+    if body.status not in {"todo", "done"}:
+        raise HTTPException(status_code=400, detail="status must be 'todo' or 'done'.")
+
+    db = get_firestore_client()
+    task_ref = db.collection("tasks").document(task_id)
+    if not task_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Task not found.")
+
+    task_ref.update({"status": body.status})
+    return {"id": task_id, "status": body.status}
