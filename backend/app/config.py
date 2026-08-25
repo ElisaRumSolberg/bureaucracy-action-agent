@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,3 +18,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# google-adk's model resolution reads these from the environment directly
+# rather than accepting them as constructor args.
+os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "1")
+os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.google_cloud_project)
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.google_cloud_location)

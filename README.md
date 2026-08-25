@@ -32,17 +32,31 @@ Next.js UI  ->  FastAPI (Cloud Run)  ->  Google ADK agent  ->  Gemini
 
 1. User uploads a PDF.
 2. Backend extracts raw text from the PDF.
-3. Agent tool `extract_document_actions` calls Gemini with structured output
-   to produce a summary, tasks, deadlines, and required documents.
-4. Agent tool `validate_tasks` deduplicates and sanity-checks the tasks.
-5. Agent tool `save_tasks` writes the validated tasks to Firestore.
-6. The UI displays the resulting action plan as a task dashboard.
+3. A real `google.adk.agents.LlmAgent` (not a bare Gemini call) reasons over
+   the document text and extracts tasks, deadlines, and required documents
+   as part of its own turn.
+4. The agent calls its `validate_tasks` tool with what it extracted — this
+   is an actual ADK function-tool call, visible in Cloud Run logs, that
+   dedupes tasks, normalizes dates, and sanity-checks priority/dependencies.
+5. The agent then calls its `save_tasks` tool (no arguments — it reads the
+   already-validated tasks from the pipeline, so the model never has to
+   re-transcribe them) to persist everything to Firestore.
+6. Only once both tool calls have succeeded does the agent produce its final
+   response: a short plain-text document summary.
+7. The UI displays the resulting action plan as a task dashboard.
 
 ## Agent Tools
 
-- `extract_document_actions(document_text)` — document text -> structured summary/tasks/deadlines.
-- `validate_tasks(actions)` — dedupe, normalize dates, flag missing information.
-- `save_tasks(document_id, tasks)` — persist validated tasks to Firestore.
+Defined in `backend/app/agent/adk_agent.py`, registered on the `LlmAgent`
+via `google.adk.tools.FunctionTool`:
+
+- `validate_tasks(tasks, warnings, missing_information)` — dedupe, normalize
+  dates, flag missing information, sanity-check priority/dependencies.
+- `save_tasks()` — persist the already-validated tasks to Firestore. Takes
+  no LLM-supplied arguments by design: the validated task list is held in a
+  small pipeline object the tools close over, so there's no risk of the
+  model corrupting data by having to copy a large JSON blob between two
+  tool calls.
 
 ## Google Technologies Used
 

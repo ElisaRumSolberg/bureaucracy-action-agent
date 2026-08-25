@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
-from app.agent.tools import extract_document_actions, save_tasks, validate_tasks
+from app.agent.adk_agent import run_agent_pipeline
 from app.firestore_client import get_firestore_client
 
 logger = logging.getLogger(__name__)
@@ -22,14 +22,6 @@ def _extract_pdf_text(file_bytes: bytes) -> str:
         raise HTTPException(
             status_code=422, detail="We could not read this document."
         ) from exc
-
-
-def _extract_with_retry(document_text: str, target_language: str | None):
-    try:
-        return extract_document_actions(document_text, target_language)
-    except Exception:  # noqa: BLE001
-        logger.warning("Gemini extraction failed, retrying once", exc_info=True)
-        return extract_document_actions(document_text, target_language)
 
 
 @router.post("/upload")
@@ -53,9 +45,9 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
     )
 
     try:
-        extraction = _extract_with_retry(document_text, target_language)
-        validation = validate_tasks(extraction)
-        result = save_tasks(document_id, validation)
+        document_summary, validation, result = await run_agent_pipeline(
+            document_text, document_id, target_language
+        )
     except Exception as exc:  # noqa: BLE001
         logger.exception("Agent pipeline failed for document %s", document_id)
         db.collection("documents").document(document_id).update(
@@ -68,7 +60,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
     db.collection("documents").document(document_id).update(
         {
             "status": "processed",
-            "summary": extraction.document_summary,
+            "summary": document_summary,
             "agentRunStatus": "success",
         }
     )
@@ -84,7 +76,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
 
     return {
         "document_id": document_id,
-        "summary": extraction.document_summary,
+        "summary": document_summary,
         "tasks": tasks_with_ids,
         "warnings": warnings,
         "missing_information": validation.missing_information,

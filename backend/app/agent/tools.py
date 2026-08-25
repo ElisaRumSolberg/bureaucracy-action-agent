@@ -1,16 +1,11 @@
-import json
 import uuid
 
-from google import genai
-
-from app.agent.prompts import SYSTEM_PROMPT, language_instruction
 from app.agent.validation import (
     flag_low_confidence,
     normalize_deadline,
     resolve_priority,
     today_utc,
 )
-from app.config import settings
 from app.firestore_client import get_firestore_client
 from app.models.schemas import (
     ExtractionResult,
@@ -19,35 +14,6 @@ from app.models.schemas import (
     ValidatedTask,
     ValidationResult,
 )
-
-_client = None
-
-
-def _gemini_client() -> genai.Client:
-    global _client
-    if _client is None:
-        _client = genai.Client(
-            vertexai=True,
-            project=settings.google_cloud_project,
-            location=settings.google_cloud_location,
-        )
-    return _client
-
-
-def extract_document_actions(
-    document_text: str, target_language: str | None = None
-) -> ExtractionResult:
-    """Tool 1: convert raw document text into structured actions/deadlines/docs."""
-    prompt = SYSTEM_PROMPT + language_instruction(target_language)
-    response = _gemini_client().models.generate_content(
-        model=settings.gemini_model,
-        contents=f"{prompt}\n\nDocument text:\n{document_text}",
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": ExtractionResult,
-        },
-    )
-    return ExtractionResult.model_validate(json.loads(response.text))
 
 
 def validate_tasks(extraction: ExtractionResult) -> ValidationResult:
