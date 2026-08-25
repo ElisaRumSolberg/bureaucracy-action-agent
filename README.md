@@ -80,7 +80,53 @@ npm run dev
 
 ## Cloud Deployment
 
-TODO (Day 5): deploy backend and frontend to Google Cloud Run.
+Live demo:
+
+- Frontend: https://bureaucracy-agent-web-760863161403.us-central1.run.app
+- Backend: https://bureaucracy-agent-api-760863161403.us-central1.run.app
+
+Both run on Cloud Run in project `bureaucracy-action-agent`, using a
+dedicated service account (`bureaucracy-agent-run`) with `roles/datastore.user`
+and `roles/aiplatform.user` — no API keys, auth is Application Default
+Credentials end to end.
+
+### Backend
+
+```bash
+cd backend
+gcloud run deploy bureaucracy-agent-api \
+  --source . \
+  --region=us-central1 \
+  --service-account=bureaucracy-agent-run@bureaucracy-action-agent.iam.gserviceaccount.com \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=bureaucracy-action-agent,GOOGLE_CLOUD_LOCATION=us-central1,FIRESTORE_DATABASE=(default),GEMINI_MODEL=gemini-2.5-flash" \
+  --allow-unauthenticated
+```
+
+### Frontend
+
+`NEXT_PUBLIC_API_URL` is inlined into the JS bundle at build time, so the
+image has to be built with the backend's URL baked in — a plain
+`gcloud run deploy --source` can't pass a Docker build-arg, so build via
+Cloud Build first, then deploy the built image:
+
+```bash
+cd frontend
+gcloud builds submit --config=cloudbuild.yaml \
+  --substitutions="_IMAGE=us-central1-docker.pkg.dev/bureaucracy-action-agent/cloud-run-source-deploy/bureaucracy-agent-web:latest,_API_URL=https://bureaucracy-agent-api-760863161403.us-central1.run.app"
+
+gcloud run deploy bureaucracy-agent-web \
+  --image=us-central1-docker.pkg.dev/bureaucracy-action-agent/cloud-run-source-deploy/bureaucracy-agent-web:latest \
+  --region=us-central1 \
+  --allow-unauthenticated
+```
+
+After the frontend's URL is known, update the backend's CORS allowlist:
+
+```bash
+gcloud run services update bureaucracy-agent-api \
+  --region=us-central1 \
+  --update-env-vars="ALLOWED_ORIGINS=https://bureaucracy-agent-web-760863161403.us-central1.run.app"
+```
 
 ## Limitations
 
