@@ -1,6 +1,7 @@
 import type { Task } from "@/lib/api";
 import { isBlocked } from "@/lib/taskGraph";
 import { translateReason } from "@/lib/reasonTranslations";
+import TaskGuidancePanel from "./TaskGuidancePanel";
 
 const PRIORITY_STYLES: Record<Task["priority"], string> = {
   high: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-950 dark:text-red-300 dark:ring-red-500/30",
@@ -187,6 +188,8 @@ export default function TaskCard({ task, index, allTasks, onToggleDone, language
             </p>
           </details>
         )}
+
+        <TaskGuidancePanel taskId={task.id} />
       </div>
     </div>
   );

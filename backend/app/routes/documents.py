@@ -10,7 +10,9 @@ from app.agent.document_extraction import (
     DocumentReadError,
     extract_document_content,
 )
+from app.agent.guidance import generate_task_guidance
 from app.firestore_client import get_firestore_client
+from app.models.schemas import TaskGuidance
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -104,3 +106,46 @@ def update_task_status(task_id: str, body: TaskStatusUpdate):
 
     task_ref.update({"status": body.status})
     return {"id": task_id, "status": body.status}
+
+
+@router.post("/tasks/{task_id}/guidance")
+async def get_task_guidance(task_id: str):
+    db = get_firestore_client()
+    task_snap = db.collection("tasks").document(task_id).get()
+    if not task_snap.exists:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    task_data = task_snap.to_dict()
+
+    cached = db.collection("task_guidance").document(task_id).get()
+    if cached.exists:
+        return cached.to_dict()
+
+    document_id = task_data["documentId"]
+    doc_snap = db.collection("documents").document(document_id).get()
+    document_summary = doc_snap.to_dict().get("summary", "") if doc_snap.exists else ""
+
+    dependency_titles = []
+    for dep_index in task_data.get("dependencies", []):
+        dep_snap = db.collection("tasks").document(f"task_{document_id}_{dep_index}").get()
+        if dep_snap.exists:
+            dependency_titles.append(dep_snap.to_dict().get("title", ""))
+
+    try:
+        guidance: TaskGuidance = await generate_task_guidance(
+            title=task_data.get("title", ""),
+            description=task_data.get("description", ""),
+            source_excerpt=task_data.get("source_excerpt", ""),
+            required_documents=task_data.get("required_documents", []),
+            deadline=task_data.get("deadline"),
+            dependency_titles=dependency_titles,
+            document_summary=document_summary,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Guidance generation failed for task %s", task_id)
+        raise HTTPException(
+            status_code=502, detail="Could not generate guidance. Please try again."
+        ) from exc
+
+    guidance_dict = guidance.model_dump()
+    db.collection("task_guidance").document(task_id).set(guidance_dict)
+    return guidance_dict

@@ -42,3 +42,16 @@ class ValidationResult(BaseModel):
 class SaveTasksResult(BaseModel):
     success: bool
     saved_task_ids: list[str]
+
+
+class TaskGuidance(BaseModel):
+    """Per-task 'how do I do this' help. document_requirements is grounded
+    strictly in what the source document/task already states; suggested_steps
+    etc. are the model's own advice — kept in separate fields so the UI never
+    blurs "the document says" with "the AI suggests"."""
+
+    document_requirements: list[str] = Field(default_factory=list)
+    suggested_steps: list[str] = Field(default_factory=list)
+    prerequisites: list[str] = Field(default_factory=list)
+    common_mistakes: list[str] = Field(default_factory=list)
+    generated_at: str = ""

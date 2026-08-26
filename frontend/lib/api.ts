@@ -69,3 +69,24 @@ export async function updateTaskStatus(
     throw new ApiError(body?.detail ?? "Could not update task status.");
   }
 }
+
+export interface TaskGuidance {
+  document_requirements: string[];
+  suggested_steps: string[];
+  prerequisites: string[];
+  common_mistakes: string[];
+  generated_at: string;
+}
+
+export async function getTaskGuidance(taskId: string): Promise<TaskGuidance> {
+  const response = await fetch(`${API_URL}/documents/tasks/${taskId}/guidance`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not generate guidance.");
+  }
+
+  return response.json();
+}
