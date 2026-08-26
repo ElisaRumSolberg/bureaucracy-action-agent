@@ -33,6 +33,48 @@ export interface UploadResult {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+export interface DocumentSummary {
+  document_id: string;
+  filename: string;
+  status: string;
+  summary: string;
+  uploaded_at: string | null;
+}
+
+export async function listDocuments(): Promise<DocumentSummary[]> {
+  const response = await fetch(`${API_URL}/documents`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not load document history.");
+  }
+
+  const data = await response.json();
+  return data.documents as DocumentSummary[];
+}
+
+export async function getDocument(documentId: string): Promise<UploadResult> {
+  const response = await fetch(`${API_URL}/documents/${documentId}`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not load this document.");
+  }
+
+  return response.json();
+}
+
+export async function deleteDocument(documentId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/documents/${documentId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not delete this document.");
+  }
+}
+
 export class ApiError extends Error {}
 
 export async function uploadDocument(

@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -16,7 +17,7 @@ from app.agent.guidance import generate_task_guidance
 from app.agent.next_best_action import get_next_best_action_index, is_blocked
 from app.agent.task_qa import answer_task_question
 from app.firestore_client import get_firestore_client
-from app.models.schemas import TaskGuidance
+from app.models.schemas import TaskGuidance, ValidatedTask
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -24,11 +25,15 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 def _ordered_tasks_for_document(db, document_id: str) -> list[dict]:
     """All sibling tasks for a document, as plain dicts ordered by their
-    index (parsed from the deterministic task_{document_id}_{index} id)."""
+    index (parsed from the deterministic task_{document_id}_{index} id).
+    Skips any task whose id doesn't match that pattern — older documents
+    from before deterministic IDs were introduced used random suffixes."""
     sibling_snaps = db.collection("tasks").where("documentId", "==", document_id).stream()
     indexed: dict[int, dict] = {}
     for snap in sibling_snaps:
-        indexed[int(snap.id.rsplit("_", 1)[1])] = snap.to_dict()
+        suffix = snap.id.rsplit("_", 1)[1]
+        if suffix.isdigit():
+            indexed[int(suffix)] = snap.to_dict()
     return [indexed[i] for i in sorted(indexed)]
 
 
@@ -56,6 +61,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
         {
             "filename": file.filename,
             "status": "processing",
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
         }
     )
     log_event(db, document_id, "document_uploaded", f'Document "{file.filename}" uploaded')
@@ -88,6 +94,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
             "summary": document_summary,
             "agentRunStatus": "success",
             "warnings": warnings,
+            "missing_information": validation.missing_information,
             "consequences": validation.consequences,
         }
     )
@@ -369,3 +376,70 @@ def get_agent_events(document_id: str):
         raise HTTPException(status_code=404, detail="Document not found.")
 
     return {"events": list_events(db, document_id)}
+
+
+@router.get("")
+def list_documents():
+    db = get_firestore_client()
+    doc_snaps = db.collection("documents").stream()
+    documents = []
+    for snap in doc_snaps:
+        data = snap.to_dict()
+        documents.append(
+            {
+                "document_id": snap.id,
+                "filename": data.get("filename", ""),
+                "status": data.get("status", ""),
+                "summary": data.get("summary", ""),
+                "uploaded_at": data.get("uploaded_at"),
+            }
+        )
+    documents.sort(key=lambda d: d.get("uploaded_at") or "", reverse=True)
+    return {"documents": documents}
+
+
+@router.get("/{document_id}")
+def get_document(document_id: str):
+    db = get_firestore_client()
+    doc_snap = db.collection("documents").document(document_id).get()
+    if not doc_snap.exists:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    doc_data = doc_snap.to_dict()
+
+    ordered_tasks = _ordered_tasks_for_document(db, document_id)
+    tasks_with_ids = [
+        # Re-validate through the model so older documents saved before a
+        # field existed (e.g. condition_status) come back with proper
+        # defaults instead of a key the frontend doesn't expect.
+        {"id": f"task_{document_id}_{i}", **ValidatedTask(**task).model_dump()}
+        for i, task in enumerate(ordered_tasks)
+    ]
+
+    return {
+        "document_id": document_id,
+        "summary": doc_data.get("summary", ""),
+        "tasks": tasks_with_ids,
+        "warnings": doc_data.get("warnings", []),
+        "missing_information": doc_data.get("missing_information", []),
+        "consequences": doc_data.get("consequences", []),
+        "saved_task_ids": [t["id"] for t in tasks_with_ids],
+    }
+
+
+@router.delete("/{document_id}")
+def delete_document(document_id: str):
+    db = get_firestore_client()
+    doc_ref = db.collection("documents").document(document_id)
+    if not doc_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    task_snaps = list(db.collection("tasks").where("documentId", "==", document_id).stream())
+    for task_snap in task_snaps:
+        db.collection("task_guidance").document(task_snap.id).delete()
+        task_snap.reference.delete()
+
+    for event_snap in doc_ref.collection("events").stream():
+        event_snap.reference.delete()
+
+    doc_ref.delete()
+    return {"document_id": document_id, "deleted": True}

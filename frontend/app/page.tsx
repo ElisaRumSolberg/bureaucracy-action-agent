@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import UploadScreen from "./components/UploadScreen";
+import Logo from "./components/Logo";
 import ProcessingScreen from "./components/ProcessingScreen";
 import ResultsScreen from "./components/ResultsScreen";
+import HistoryScreen from "./components/HistoryScreen";
 import {
   ApiError,
+  getDocument,
   updateConditionStatus,
   updateTaskStatus,
   uploadDocument,
@@ -14,7 +17,7 @@ import {
   type UploadResult,
 } from "@/lib/api";
 
-type Stage = "upload" | "processing" | "results";
+type Stage = "upload" | "processing" | "results" | "history";
 
 export default function Home() {
   const [stage, setStage] = useState<Stage>("upload");
@@ -121,14 +124,37 @@ export default function Home() {
     setStage("upload");
   }
 
+  async function handleOpenFromHistory(documentId: string) {
+    setErrorMessage(null);
+    setStage("processing");
+    try {
+      const doc = await getDocument(documentId);
+      setResult(doc);
+      setCurrentFile(null);
+      setResultLanguage(undefined);
+      setStage("results");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "Something went wrong. Please try again."
+      );
+      setStage("history");
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-4xl items-center gap-2 px-6 py-4">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-brand" aria-hidden="true" />
+          <Logo className="h-7 w-7 shrink-0" />
           <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             Bureaucracy Action Agent
           </span>
+          <button
+            onClick={() => setStage("history")}
+            className="ml-auto text-sm font-medium text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
+          >
+            History
+          </button>
         </div>
       </header>
 
@@ -136,6 +162,9 @@ export default function Home() {
         <UploadScreen onFileSelected={handleFileSelected} errorMessage={errorMessage} />
       )}
       {stage === "processing" && <ProcessingScreen />}
+      {stage === "history" && (
+        <HistoryScreen onOpen={handleOpenFromHistory} onBack={() => setStage("upload")} />
+      )}
       {stage === "results" && result && (
         <ResultsScreen
           result={result}

@@ -58,10 +58,13 @@ export function computeCriticalPath(tasks: Task[]): number[] {
   );
 
   const path = [current];
+  const visited = new Set([current]);
   while (tasks[current].dependencies.length > 0) {
     const deps = tasks[current].dependencies.filter((d) => d >= 0 && d < tasks.length);
     if (deps.length === 0) break;
     current = deps.reduce((deepest, d) => (levels[d] > levels[deepest] ? d : deepest), deps[0]);
+    if (visited.has(current)) break; // cyclic reference — stop instead of looping forever
+    visited.add(current);
     path.push(current);
   }
 
