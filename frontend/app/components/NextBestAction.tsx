@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getNextBestAction, isSatisfied } from "@/lib/taskGraph";
 import { renderReason } from "@/lib/reasonTranslations";
+import { t, tTaskLabel, tUnlockedAfter } from "@/lib/uiTranslations";
 import type { Task } from "@/lib/api";
 
 interface Props {
@@ -37,8 +38,8 @@ export default function NextBestAction({ tasks, language }: Props) {
         unlockedByIndex !== undefined ? tasks[unlockedByIndex]?.title : undefined;
       setChangeNote(
         unlockedTitle
-          ? `Updated automatically — unlocked after you completed "${unlockedTitle}"`
-          : "Updated automatically based on your progress"
+          ? tUnlockedAfter(unlockedTitle, language)
+          : t("Updated automatically based on your progress", language)
       );
       const timeout = setTimeout(() => setChangeNote(null), CHANGE_NOTICE_MS);
       prevIdRef.current = currentId;
@@ -48,19 +49,19 @@ export default function NextBestAction({ tasks, language }: Props) {
 
     prevIdRef.current = currentId;
     prevTasksRef.current = tasks;
-  }, [tasks, next]);
+  }, [tasks, next, language]);
 
   if (!next) {
-    const allDone = tasks.length > 0 && tasks.every((t) => t.status === "done");
+    const allDone = tasks.length > 0 && tasks.every((task) => task.status === "done");
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950">
         <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-          {allDone ? "All tasks complete" : "Nothing is unblocked yet"}
+          {allDone ? t("All tasks complete", language) : t("Nothing is unblocked yet", language)}
         </p>
         <p className="mt-1 text-sm text-emerald-600 dark:text-emerald-400">
           {allDone
-            ? "Every task in this action plan has been marked done."
-            : "Every remaining task is waiting on a dependency."}
+            ? t("Every task in this action plan has been marked done.", language)
+            : t("Every remaining task is waiting on a dependency.", language)}
         </p>
       </div>
     );
@@ -81,18 +82,18 @@ export default function NextBestAction({ tasks, language }: Props) {
         </p>
       )}
       <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-        {next.isConditionalPick ? "If this applies to you" : "Recommended next action"}
+        {next.isConditionalPick ? t("If this applies to you", language) : t("Recommended next action", language)}
       </p>
       <h3 className="mt-1 text-xl font-semibold">
-        Task {next.index + 1}: {next.task.title}
+        {tTaskLabel(next.index + 1, language)}: {next.task.title}
       </h3>
       {next.isConditionalPick && next.task.condition && (
         <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
-          Condition: {next.task.condition}
+          {t("Condition:", language)} {next.task.condition}
         </p>
       )}
       <p className="mt-2 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-        Why?
+        {t("Why?", language)}
       </p>
       <ul className="mt-1 space-y-1 text-sm text-zinc-300 dark:text-zinc-600">
         {reasonTexts.map((text, idx) => (

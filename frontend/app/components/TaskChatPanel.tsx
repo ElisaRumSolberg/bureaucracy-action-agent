@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { ApiError, askTaskQuestion } from "@/lib/api";
+import { t } from "@/lib/uiTranslations";
 
 interface Props {
   taskId: string;
+  language?: string;
 }
 
 interface QAPair {
@@ -19,7 +21,7 @@ const QUICK_QUESTIONS = [
   "How do I start?",
 ];
 
-export default function TaskChatPanel({ taskId }: Props) {
+export default function TaskChatPanel({ taskId, language }: Props) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export default function TaskChatPanel({ taskId }: Props) {
       const answer = await askTaskQuestion(taskId, trimmed);
       setHistory((prev) => [...prev, { question: trimmed, answer }]);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong.");
+      setError(err instanceof ApiError ? err.message : t("Something went wrong.", language));
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export default function TaskChatPanel({ taskId }: Props) {
         onClick={() => setOpen((wasOpen) => !wasOpen)}
         className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
-        {open ? "Hide chat" : "Ask about this task"}
+        {open ? t("Hide chat", language) : t("Ask about this task", language)}
       </button>
 
       {open && (
@@ -58,10 +60,10 @@ export default function TaskChatPanel({ taskId }: Props) {
               {QUICK_QUESTIONS.map((q) => (
                 <button
                   key={q}
-                  onClick={() => ask(q)}
+                  onClick={() => ask(t(q, language))}
                   className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[11px] font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-900 dark:bg-zinc-900 dark:text-sky-400 dark:hover:bg-sky-950"
                 >
-                  {q}
+                  {t(q, language)}
                 </button>
               ))}
             </div>
@@ -83,7 +85,7 @@ export default function TaskChatPanel({ taskId }: Props) {
           {loading && (
             <p className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
-              Thinking…
+              {t("Thinking…", language)}
             </p>
           )}
 
@@ -99,7 +101,7 @@ export default function TaskChatPanel({ taskId }: Props) {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question about this task…"
+              placeholder={t("Ask a question about this task…", language)}
               disabled={loading}
               className="flex-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-800 outline-none focus:border-sky-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             />
@@ -108,7 +110,7 @@ export default function TaskChatPanel({ taskId }: Props) {
               disabled={loading || !input.trim()}
               className="rounded-md bg-sky-600 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
             >
-              Ask
+              {t("Ask", language)}
             </button>
           </form>
         </div>

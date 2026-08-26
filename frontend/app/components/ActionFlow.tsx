@@ -3,10 +3,12 @@
 import { useState } from "react";
 import type { Task } from "@/lib/api";
 import { computeCriticalPath, computeLevels, isBlocked, isDone } from "@/lib/taskGraph";
+import { t } from "@/lib/uiTranslations";
 
 interface Props {
   tasks: Task[];
   highlightIndex?: number;
+  language?: string;
 }
 
 function NodeChip({
@@ -97,7 +99,7 @@ function AllTasksView({ tasks, highlightIndex }: Props) {
   );
 }
 
-export default function ActionFlow({ tasks, highlightIndex }: Props) {
+export default function ActionFlow({ tasks, highlightIndex, language }: Props) {
   const [view, setView] = useState<"critical" | "all">("critical");
 
   if (tasks.length < 2) return null;
@@ -105,7 +107,7 @@ export default function ActionFlow({ tasks, highlightIndex }: Props) {
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Action Flow</p>
+        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{t("Action Flow", language)}</p>
         <div className="flex rounded-full border border-zinc-200 p-0.5 text-xs dark:border-zinc-700">
           {(["critical", "all"] as const).map((option) => (
             <button
@@ -117,7 +119,7 @@ export default function ActionFlow({ tasks, highlightIndex }: Props) {
                   : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
               }`}
             >
-              {option === "critical" ? "Critical Path" : "All Tasks"}
+              {option === "critical" ? t("Critical Path", language) : t("All Tasks", language)}
             </button>
           ))}
         </div>

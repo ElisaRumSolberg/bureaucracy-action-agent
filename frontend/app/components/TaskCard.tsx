@@ -1,6 +1,7 @@
 import type { ConditionStatus, Task } from "@/lib/api";
 import { isBlocked, isConditionNotApplicable } from "@/lib/taskGraph";
 import { translateReason } from "@/lib/reasonTranslations";
+import { localeFor, t, tTaskLabel, tTasksCount } from "@/lib/uiTranslations";
 import TaskGuidancePanel from "./TaskGuidancePanel";
 import TaskChatPanel from "./TaskChatPanel";
 import TaskDelayImpactPanel from "./TaskDelayImpactPanel";
@@ -18,22 +19,25 @@ const RISK_STYLES: Record<Task["priority"], string> = {
   low: "text-zinc-500 dark:text-zinc-400",
 };
 
-function formatDeadline(deadline: string | null, inherited: boolean): string {
-  if (!deadline) return "No deadline stated";
+function formatDeadline(deadline: string | null, inherited: boolean, language: string | undefined): string {
+  if (!deadline) return t("No deadline stated", language);
   const date = new Date(`${deadline}T00:00:00`);
-  const formatted = date.toLocaleDateString(undefined, {
+  const formatted = date.toLocaleDateString(localeFor(language), {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
-  return inherited ? `${formatted} (from final deadline)` : formatted;
+  return inherited ? `${formatted} ${t("(from final deadline)", language)}` : formatted;
 }
 
-function confidenceLabel(confidence: number): { label: string; needsVerification: boolean } {
+function confidenceLabel(
+  confidence: number,
+  language: string | undefined
+): { label: string; needsVerification: boolean } {
   const pct = Math.round(confidence * 100);
-  if (pct >= 90) return { label: "High confidence", needsVerification: false };
-  if (pct >= 70) return { label: "Medium confidence", needsVerification: false };
-  return { label: "Needs verification", needsVerification: true };
+  if (pct >= 90) return { label: t("High confidence", language), needsVerification: false };
+  if (pct >= 70) return { label: t("Medium confidence", language), needsVerification: false };
+  return { label: t("Needs verification", language), needsVerification: true };
 }
 
 interface Props {
@@ -59,7 +63,7 @@ export default function TaskCard({
   const isDone = task.status === "done";
   const notApplicable = isConditionNotApplicable(task);
   const blocked = !isDone && !notApplicable && isBlocked(allTasks, index);
-  const confidence = confidenceLabel(task.confidence);
+  const confidence = confidenceLabel(task.confidence, language);
   const dimmed = isDone || notApplicable;
 
   return (
@@ -82,7 +86,7 @@ export default function TaskCard({
             <span
               className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${PRIORITY_STYLES[task.priority]}`}
             >
-              {task.priority.toUpperCase()} PRIORITY
+              {t(task.priority.toUpperCase(), language)} {t("PRIORITY", language)}
             </span>
             {task.priority_reason && (
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -92,10 +96,10 @@ export default function TaskCard({
           </span>
         </label>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className="text-xs text-zinc-400">Task {index + 1}</span>
+          <span className="text-xs text-zinc-400">{tTaskLabel(index + 1, language)}</span>
           {blocked && (
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-              🔒 Blocked
+              🔒 {t("Blocked", language)}
             </span>
           )}
         </div>
@@ -109,29 +113,29 @@ export default function TaskCard({
       {task.is_conditional && (
         <div className="mt-1.5 rounded-lg border border-sky-100 bg-sky-50/60 p-2.5 dark:border-sky-900/50 dark:bg-sky-950/30">
           <p className="text-xs font-medium text-sky-700 dark:text-sky-400">
-            Conditional{task.condition ? ` — ${task.condition}` : ""}
+            {t("Conditional", language)}{task.condition ? ` — ${task.condition}` : ""}
           </p>
 
           {task.condition_status === "unknown" && (
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <span className="text-xs text-sky-700/80 dark:text-sky-400/80">
-                Does this apply to you?
+                {t("Does this apply to you?", language)}
               </span>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => onSetConditionStatus(task, "applies")}
                   className="rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-medium text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-zinc-900 dark:text-sky-400 dark:hover:bg-sky-950"
                 >
-                  Yes
+                  {t("Yes", language)}
                 </button>
                 <button
                   onClick={() => onSetConditionStatus(task, "not_applicable")}
                   className="rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 >
-                  No
+                  {t("No", language)}
                 </button>
                 <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                  (leave unanswered if not sure)
+                  {t("(leave unanswered if not sure)", language)}
                 </span>
               </div>
             </div>
@@ -140,13 +144,13 @@ export default function TaskCard({
           {task.condition_status === "applies" && (
             <div className="mt-1.5 flex items-center gap-2">
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                Applies to you
+                {t("Applies to you", language)}
               </span>
               <button
                 onClick={() => onSetConditionStatus(task, "unknown")}
                 className="text-[11px] text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
               >
-                Change
+                {t("Change", language)}
               </button>
             </div>
           )}
@@ -154,13 +158,13 @@ export default function TaskCard({
           {task.condition_status === "not_applicable" && (
             <div className="mt-1.5 flex items-center gap-2">
               <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-                Doesn&apos;t apply — excluded from your plan
+                {t("Doesn't apply — excluded from your plan", language)}
               </span>
               <button
                 onClick={() => onSetConditionStatus(task, "unknown")}
                 className="text-[11px] text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
               >
-                Change
+                {t("Change", language)}
               </button>
             </div>
           )}
@@ -173,16 +177,16 @@ export default function TaskCard({
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
         <div>
           <dt className="text-xs uppercase tracking-wide text-zinc-400">
-            Deadline
+            {t("Deadline", language)}
           </dt>
           <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {formatDeadline(task.deadline, task.deadline_inherited)}
+            {formatDeadline(task.deadline, task.deadline_inherited, language)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-zinc-400">Risk</dt>
+          <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Risk", language)}</dt>
           <dd className={`mt-0.5 font-medium ${RISK_STYLES[task.risk_level]}`}>
-            {task.risk_level.toUpperCase()}
+            {t(task.risk_level.toUpperCase(), language)}
             {task.risk_reason && (
               <span className="block text-xs font-normal text-zinc-500 dark:text-zinc-400">
                 {translateReason(task.risk_reason, language)}
@@ -192,17 +196,17 @@ export default function TaskCard({
         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-zinc-400">
-            Depends on
+            {t("Depends on", language)}
           </dt>
           <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {dependencyTitles.length === 0 && "Nothing"}
+            {dependencyTitles.length === 0 && t("Nothing", language)}
             {dependencyTitles.length > 0 && dependencyTitles.length <= 2 && (
               dependencyTitles.join(", ")
             )}
             {dependencyTitles.length > 2 && (
               <details>
                 <summary className="cursor-pointer select-none">
-                  {dependencyTitles.length} tasks
+                  {tTasksCount(dependencyTitles.length, language)}
                 </summary>
                 <ul className="mt-1 list-inside list-disc font-normal text-zinc-600 dark:text-zinc-400">
                   {dependencyTitles.map((title) => (
@@ -215,12 +219,12 @@ export default function TaskCard({
         </div>
         <div>
           <dt className="text-xs uppercase tracking-wide text-zinc-400">
-            Required documents
+            {t("Required documents", language)}
           </dt>
           <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
             {task.required_documents.length > 0
               ? task.required_documents.join(", ")
-              : "None stated"}
+              : t("None stated", language)}
           </dd>
         </div>
       </dl>
@@ -248,7 +252,7 @@ export default function TaskCard({
         {task.source_excerpt && (
           <details className="group mt-3">
             <summary className="cursor-pointer select-none text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Source evidence
+              {t("Source evidence", language)}
             </summary>
             <p className="mt-2 rounded-lg bg-zinc-50 p-3 text-xs italic leading-5 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
               &ldquo;{task.source_excerpt}&rdquo;
@@ -256,9 +260,9 @@ export default function TaskCard({
           </details>
         )}
 
-        <TaskGuidancePanel taskId={task.id} />
-        <TaskChatPanel taskId={task.id} />
-        <TaskDelayImpactPanel taskId={task.id} />
+        <TaskGuidancePanel taskId={task.id} language={language} />
+        <TaskChatPanel taskId={task.id} language={language} />
+        <TaskDelayImpactPanel taskId={task.id} language={language} />
       </div>
     </div>
   );

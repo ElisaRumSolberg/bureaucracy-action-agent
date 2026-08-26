@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { ApiError, getDelayImpact, type DelayImpact } from "@/lib/api";
+import { t } from "@/lib/uiTranslations";
 
 interface Props {
   taskId: string;
+  language?: string;
 }
 
-export default function TaskDelayImpactPanel({ taskId }: Props) {
+export default function TaskDelayImpactPanel({ taskId, language }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [impact, setImpact] = useState<DelayImpact | null>(null);
@@ -26,7 +28,7 @@ export default function TaskDelayImpactPanel({ taskId }: Props) {
       const result = await getDelayImpact(taskId);
       setImpact(result);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong.");
+      setError(err instanceof ApiError ? err.message : t("Something went wrong.", language));
     } finally {
       setLoading(false);
     }
@@ -38,7 +40,7 @@ export default function TaskDelayImpactPanel({ taskId }: Props) {
         onClick={handleOpen}
         className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
-        {open ? "Hide delay impact" : "What if I delay this?"}
+        {open ? t("Hide delay impact", language) : t("What if I delay this?", language)}
       </button>
 
       {open && (
@@ -46,7 +48,7 @@ export default function TaskDelayImpactPanel({ taskId }: Props) {
           {loading && (
             <p className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
-              Checking downstream impact…
+              {t("Checking downstream impact…", language)}
             </p>
           )}
 

@@ -5,6 +5,7 @@ import NextBestAction from "./NextBestAction";
 import ActionFlow from "./ActionFlow";
 import AgentActivityFeed from "./AgentActivityFeed";
 import { getNextBestAction } from "@/lib/taskGraph";
+import { t, tDetectedCount, tProgressDone } from "@/lib/uiTranslations";
 
 interface Props {
   result: UploadResult;
@@ -25,9 +26,9 @@ export default function ResultsScreen({
   isReprocessing,
   language,
 }: Props) {
-  const doneCount = result.tasks.filter((t) => t.status === "done").length;
-  const deadlineCount = result.tasks.filter((t) => t.deadline).length;
-  const dependencyCount = result.tasks.filter((t) => t.dependencies.length > 0).length;
+  const doneCount = result.tasks.filter((task) => task.status === "done").length;
+  const deadlineCount = result.tasks.filter((task) => task.deadline).length;
+  const dependencyCount = result.tasks.filter((task) => task.dependencies.length > 0).length;
   const nextBestAction = getNextBestAction(result.tasks);
 
   return (
@@ -36,9 +37,9 @@ export default function ResultsScreen({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-zinc-400">Action plan</p>
+          <p className="text-sm font-medium text-zinc-400">{t("Action plan", language)}</p>
           <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Document Summary
+            {t("Document Summary", language)}
           </h1>
           <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">
             {result.summary}
@@ -46,20 +47,20 @@ export default function ResultsScreen({
 
           <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">Actions</dt>
+              <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Actions", language)}</dt>
               <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-                {result.tasks.length} detected
+                {tDetectedCount(result.tasks.length, language)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">Deadlines</dt>
+              <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Deadlines", language)}</dt>
               <dd className="font-medium text-zinc-800 dark:text-zinc-200">
                 {deadlineCount}
               </dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                Dependencies
+                {t("Dependencies", language)}
               </dt>
               <dd className="font-medium text-zinc-800 dark:text-zinc-200">
                 {dependencyCount}
@@ -67,23 +68,23 @@ export default function ResultsScreen({
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                Missing details
+                {t("Missing details", language)}
               </dt>
               <dd className="font-medium text-zinc-800 dark:text-zinc-200">
                 {result.missing_information.length}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">Progress</dt>
+              <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Progress", language)}</dt>
               <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-                {doneCount} of {result.tasks.length} done
+                {tProgressDone(doneCount, result.tasks.length, language)}
               </dd>
             </div>
           </dl>
 
           <div className="mt-3">
             <LanguageSelect
-              label={isReprocessing ? "Translating…" : "Explain in"}
+              label={isReprocessing ? t("Translating…", language) : t("Explain in", language)}
               onChange={onChangeLanguage}
               compact
             />
@@ -93,7 +94,7 @@ export default function ResultsScreen({
           onClick={onReset}
           className="shrink-0 rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
         >
-          Upload another
+          {t("Upload another", language)}
         </button>
       </div>
 
@@ -103,15 +104,16 @@ export default function ResultsScreen({
           <AgentActivityFeed
             documentId={result.document_id}
             refreshToken={result.tasks
-              .map((t) => `${t.id}:${t.status}:${t.condition_status}`)
+              .map((task) => `${task.id}:${task.status}:${task.condition_status}`)
               .join(",")}
+            language={language}
           />
         </div>
       )}
 
       {result.warnings.length > 0 && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-          <p className="font-medium">Warnings</p>
+          <p className="font-medium">{t("Warnings", language)}</p>
           <ul className="mt-1 list-inside list-disc space-y-1">
             {result.warnings.map((warning) => (
               <li key={warning}>{warning}</li>
@@ -122,7 +124,7 @@ export default function ResultsScreen({
 
       {result.missing_information.length > 0 && (
         <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-          <p className="font-medium">Missing information</p>
+          <p className="font-medium">{t("Missing information", language)}</p>
           <ul className="mt-1 list-inside list-disc space-y-1">
             {result.missing_information.map((item) => (
               <li key={item}>{item}</li>
@@ -134,7 +136,7 @@ export default function ResultsScreen({
       {result.consequences.length > 0 && (
         <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
           <p className="font-medium text-zinc-900 dark:text-zinc-100">
-            Possible consequences
+            {t("Possible consequences", language)}
           </p>
           <ul className="mt-1 list-inside list-disc space-y-1">
             {result.consequences.map((item) => (
@@ -145,7 +147,7 @@ export default function ResultsScreen({
       )}
 
       <div className="mt-6">
-        <ActionFlow tasks={result.tasks} highlightIndex={nextBestAction?.index} />
+        <ActionFlow tasks={result.tasks} highlightIndex={nextBestAction?.index} language={language} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
@@ -163,9 +165,10 @@ export default function ResultsScreen({
       </div>
 
       <p className="mx-auto mt-10 max-w-lg text-center text-xs leading-5 text-zinc-500">
-        This tool helps you organize information found in official documents.
-        It does not provide legal advice — verify critical requirements with
-        the issuing institution.
+        {t(
+          "This tool helps you organize information found in official documents. It does not provide legal advice — verify critical requirements with the issuing institution.",
+          language
+        )}
       </p>
     </div>
   );

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { ApiError, getTaskGuidance, type TaskGuidance } from "@/lib/api";
+import { t } from "@/lib/uiTranslations";
 
 interface Props {
   taskId: string;
+  language?: string;
 }
 
-export default function TaskGuidancePanel({ taskId }: Props) {
+export default function TaskGuidancePanel({ taskId, language }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [guidance, setGuidance] = useState<TaskGuidance | null>(null);
@@ -22,7 +24,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
       const result = await getTaskGuidance(taskId);
       setGuidance(result);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong.");
+      setError(err instanceof ApiError ? err.message : t("Something went wrong.", language));
     } finally {
       setLoading(false);
     }
@@ -34,7 +36,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
         onClick={handleOpen}
         className="w-full rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
-        {open ? "Hide guidance" : "How to complete this"}
+        {open ? t("Hide guidance", language) : t("How to complete this", language)}
       </button>
 
       {open && (
@@ -42,7 +44,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
           {loading && (
             <p className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
-              Generating guidance…
+              {t("Generating guidance…", language)}
             </p>
           )}
 
@@ -53,7 +55,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
               {guidance.document_requirements.length > 0 && (
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                    From the document
+                    {t("From the document", language)}
                   </p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-zinc-700 dark:text-zinc-300">
                     {guidance.document_requirements.map((item) => (
@@ -66,7 +68,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
               {guidance.suggested_steps.length > 0 && (
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
-                    AI suggestion — steps
+                    {t("AI suggestion — steps", language)}
                   </p>
                   <ol className="mt-1 list-inside list-decimal space-y-0.5 text-zinc-700 dark:text-zinc-300">
                     {guidance.suggested_steps.map((item) => (
@@ -79,7 +81,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
               {guidance.prerequisites.length > 0 && (
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
-                    AI suggestion — before you start
+                    {t("AI suggestion — before you start", language)}
                   </p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-zinc-700 dark:text-zinc-300">
                     {guidance.prerequisites.map((item) => (
@@ -92,7 +94,7 @@ export default function TaskGuidancePanel({ taskId }: Props) {
               {guidance.common_mistakes.length > 0 && (
                 <div>
                   <p className="font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
-                    AI suggestion — common mistakes
+                    {t("AI suggestion — common mistakes", language)}
                   </p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-zinc-700 dark:text-zinc-300">
                     {guidance.common_mistakes.map((item) => (

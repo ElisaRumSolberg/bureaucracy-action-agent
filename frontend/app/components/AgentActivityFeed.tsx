@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ApiError, getAgentEvents, type AgentEvent } from "@/lib/api";
+import { t } from "@/lib/uiTranslations";
 
 interface Props {
   documentId: string;
@@ -9,6 +10,7 @@ interface Props {
    * confirmations, ...) — used purely to trigger a refetch while the feed
    * is open, since the backend is the source of truth for what happened. */
   refreshToken: string;
+  language?: string;
 }
 
 const EVENT_ICON: Record<string, string> = {
@@ -23,7 +25,7 @@ const EVENT_ICON: Record<string, string> = {
   pipeline_failed: "⚠️",
 };
 
-export default function AgentActivityFeed({ documentId, refreshToken }: Props) {
+export default function AgentActivityFeed({ documentId, refreshToken, language }: Props) {
   const [open, setOpen] = useState(false);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +41,8 @@ export default function AgentActivityFeed({ documentId, refreshToken }: Props) {
         if (!cancelled) setEvents(result);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Something went wrong.");
+        if (!cancelled)
+          setError(err instanceof ApiError ? err.message : t("Something went wrong.", language));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -55,16 +58,16 @@ export default function AgentActivityFeed({ documentId, refreshToken }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300"
       >
-        <span>🤖 Agent activity</span>
-        <span className="text-xs text-zinc-400">{open ? "Hide" : "Show"}</span>
+        <span>🤖 {t("Agent activity", language)}</span>
+        <span className="text-xs text-zinc-400">{open ? t("Hide", language) : t("Show", language)}</span>
       </button>
 
       {open && (
         <div className="border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
-          {loading && <p className="text-xs text-zinc-400">Loading…</p>}
+          {loading && <p className="text-xs text-zinc-400">{t("Loading…", language)}</p>}
           {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
           {!loading && !error && events.length === 0 && (
-            <p className="text-xs text-zinc-400">No activity yet.</p>
+            <p className="text-xs text-zinc-400">{t("No activity yet.", language)}</p>
           )}
           <ol className="space-y-2">
             {events.map((event, idx) => (
