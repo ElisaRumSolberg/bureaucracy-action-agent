@@ -1,0 +1,95 @@
+<svg viewBox="0 0 1160 720" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#52525b"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <rect width="1160" height="720" fill="#fafafa"/>
+  <text x="580" y="40" text-anchor="middle" font-size="24" font-weight="700" fill="#18181b">Bureaucracy Action Agent — Architecture</text>
+  <text x="580" y="64" text-anchor="middle" font-size="14" fill="#71717a">Google All Things Agentic Hackathon — Taskmaster track</text>
+
+  <!-- Client -->
+  <rect x="40" y="120" width="200" height="90" rx="12" fill="#ffffff" stroke="#a1a1aa" stroke-width="1.5"/>
+  <text x="140" y="155" text-anchor="middle" font-size="16" font-weight="600" fill="#18181b">Next.js UI</text>
+  <text x="140" y="176" text-anchor="middle" font-size="12" fill="#71717a">Cloud Run (frontend)</text>
+  <text x="140" y="194" text-anchor="middle" font-size="12" fill="#71717a">upload, task actions, live feed</text>
+
+  <!-- Cloud Run box -->
+  <rect x="330" y="100" width="480" height="330" rx="14" fill="#ffffff" stroke="#d4d4d8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="350" y="125" font-size="13" font-weight="700" fill="#52525b">CLOUD RUN — backend service</text>
+
+  <!-- FastAPI -->
+  <rect x="360" y="145" width="200" height="90" rx="12" fill="#ffffff" stroke="#a1a1aa" stroke-width="1.5"/>
+  <text x="460" y="180" text-anchor="middle" font-size="16" font-weight="600" fill="#18181b">FastAPI backend</text>
+  <text x="460" y="200" text-anchor="middle" font-size="12" fill="#71717a">/documents routes</text>
+  <text x="460" y="218" text-anchor="middle" font-size="12" fill="#71717a">activity log, NBA scorer</text>
+
+  <!-- ADK Agent -->
+  <rect x="600" y="145" width="180" height="90" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="690" y="175" text-anchor="middle" font-size="16" font-weight="600" fill="#1e3a8a">Google ADK</text>
+  <text x="690" y="194" text-anchor="middle" font-size="12" fill="#1e40af">LlmAgent</text>
+  <text x="690" y="212" text-anchor="middle" font-size="12" fill="#1e40af">validate_tasks / save_tasks tools</text>
+
+  <!-- Non-ADK Gemini calls box -->
+  <rect x="360" y="270" width="420" height="130" rx="12" fill="#ffffff" stroke="#a1a1aa" stroke-width="1.5"/>
+  <text x="570" y="294" text-anchor="middle" font-size="14" font-weight="600" fill="#18181b">Grounded Gemini calls (non-ADK)</text>
+  <text x="570" y="318" text-anchor="middle" font-size="12" fill="#52525b">Task guidance · Task Q&amp;A · Delay-impact phrasing</text>
+  <text x="570" y="338" text-anchor="middle" font-size="12" fill="#71717a">Each call is grounded in facts a plain Python function</text>
+  <text x="570" y="356" text-anchor="middle" font-size="12" fill="#71717a">already computed or fetched — Gemini only phrases them,</text>
+  <text x="570" y="374" text-anchor="middle" font-size="12" fill="#71717a">never invents the underlying facts.</text>
+
+  <!-- Gemini -->
+  <rect x="900" y="145" width="220" height="90" rx="12" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="1010" y="178" text-anchor="middle" font-size="16" font-weight="600" fill="#713f12">Gemini 3 Flash</text>
+  <text x="1010" y="198" text-anchor="middle" font-size="12" fill="#854d0e">via Vertex AI</text>
+  <text x="1010" y="216" text-anchor="middle" font-size="12" fill="#854d0e">location: global</text>
+
+  <!-- Firestore -->
+  <rect x="900" y="290" width="220" height="110" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="1010" y="318" text-anchor="middle" font-size="16" font-weight="600" fill="#14532d">Firestore</text>
+  <text x="1010" y="338" text-anchor="middle" font-size="12" fill="#166534">documents / tasks</text>
+  <text x="1010" y="356" text-anchor="middle" font-size="12" fill="#166534">task_guidance (cache)</text>
+  <text x="1010" y="374" text-anchor="middle" font-size="12" fill="#166534">documents/{id}/events</text>
+
+  <!-- Arrows: UI -> FastAPI -->
+  <line x1="240" y1="165" x2="358" y2="190" stroke="#52525b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- FastAPI -> ADK agent -->
+  <line x1="560" y1="190" x2="598" y2="190" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="580" y="180" text-anchor="middle" font-size="10" fill="#2563eb">invoke</text>
+
+  <!-- ADK agent -> Gemini -->
+  <line x1="780" y1="190" x2="898" y2="190" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="840" y="180" text-anchor="middle" font-size="10" fill="#2563eb">extract</text>
+
+  <!-- ADK agent tool calls -> Firestore -->
+  <path d="M 690 235 C 690 300, 850 340, 898 340" stroke="#2563eb" stroke-width="1.5" fill="none" marker-end="url(#arrow-blue)"/>
+  <text x="790" y="300" text-anchor="middle" font-size="10" fill="#2563eb">validate_tasks / save_tasks</text>
+
+  <!-- Guidance box -> Gemini -->
+  <path d="M 780 320 C 850 280, 870 230, 898 195" stroke="#71717a" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Guidance box -> Firestore -->
+  <line x1="780" y1="350" x2="898" y2="345" stroke="#71717a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- FastAPI -> Firestore (NBA / activity log / task status) -->
+  <path d="M 460 235 C 460 460, 850 470, 898 380" stroke="#52525b" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+  <text x="620" y="470" text-anchor="middle" font-size="10" fill="#52525b">Next Best Action · activity log · condition status</text>
+
+  <!-- Firestore -> UI (live state) -->
+  <path d="M 900 400 C 500 560, 200 500, 140 212" stroke="#16a34a" stroke-width="1.5" fill="none" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <text x="500" y="580" text-anchor="middle" font-size="11" fill="#166534">live state: task status, agent activity feed, Next Best Action</text>
+
+  <!-- Reactivity loop callout -->
+  <rect x="40" y="620" width="1080" height="70" rx="12" fill="#18181b"/>
+  <text x="580" y="648" text-anchor="middle" font-size="13" font-weight="600" fill="#fafafa">
+    The loop: document uploaded → agent extracts → validates → builds dependency graph → selects Next Best Action
+  </text>
+  <text x="580" y="670" text-anchor="middle" font-size="13" font-weight="600" fill="#fafafa">
+    → user completes a task → agent detects the state change → unblocks downstream tasks → updates its recommendation
+  </text>
+</svg>
