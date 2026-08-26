@@ -45,6 +45,7 @@ export default function Dashboard({
   language,
 }: Props) {
   const [view, setView] = useState<View>("dashboard");
+  const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
 
   const doneCount = result.tasks.filter((task) => task.status === "done").length;
   const deadlineCount = result.tasks.filter((task) => task.deadline).length;
@@ -141,7 +142,14 @@ export default function Dashboard({
         <div className="min-w-0 flex-1 space-y-4">
           {view === "dashboard" && (
             <>
-              <NextBestAction tasks={result.tasks} language={language} />
+              <NextBestAction
+                tasks={result.tasks}
+                language={language}
+                onStartAction={(taskId) => {
+                  setFocusTaskId(taskId);
+                  setView("guidance");
+                }}
+              />
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <ProgressCard tasks={result.tasks} language={language} />
@@ -214,7 +222,9 @@ export default function Dashboard({
             </div>
           )}
 
-          {view === "guidance" && <GuidanceView tasks={result.tasks} language={language} />}
+          {view === "guidance" && (
+            <GuidanceView tasks={result.tasks} language={language} focusTaskId={focusTaskId} />
+          )}
 
           {view === "activitylog" && (
             <AgentActivityFeed

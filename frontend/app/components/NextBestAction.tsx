@@ -9,12 +9,16 @@ import type { Task } from "@/lib/api";
 interface Props {
   tasks: Task[];
   language?: string;
+  /** When provided, shows a "Start this action" CTA that hands the
+   * recommended task's id back to the caller — e.g. to jump to its
+   * guidance. Omitted where there's nowhere sensible to send it. */
+  onStartAction?: (taskId: string) => void;
 }
 
 const CHANGE_NOTICE_MS = 4000;
 const CELEBRATION_MS = 5000;
 
-export default function NextBestAction({ tasks, language }: Props) {
+export default function NextBestAction({ tasks, language, onStartAction }: Props) {
   const next = getNextBestAction(tasks);
   const allDone = tasks.length > 0 && tasks.every((task) => task.status === "done");
 
@@ -134,6 +138,14 @@ export default function NextBestAction({ tasks, language }: Props) {
           </li>
         ))}
       </ul>
+      {onStartAction && (
+        <button
+          onClick={() => onStartAction(next.task.id)}
+          className="mt-3 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 dark:bg-indigo-500"
+        >
+          {t("Start this action", language)} →
+        </button>
+      )}
     </div>
   );
 }

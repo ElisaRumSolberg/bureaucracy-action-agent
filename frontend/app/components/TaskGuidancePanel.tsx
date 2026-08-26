@@ -1,22 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, getTaskGuidance, type TaskGuidance } from "@/lib/api";
 import { t } from "@/lib/uiTranslations";
 
 interface Props {
   taskId: string;
   language?: string;
+  /** Open (and start fetching) immediately — for when the user was routed
+   * here to look at this specific task, e.g. via "Start this action". */
+  initialOpen?: boolean;
 }
 
-export default function TaskGuidancePanel({ taskId, language }: Props) {
-  const [open, setOpen] = useState(false);
+export default function TaskGuidancePanel({ taskId, language, initialOpen = false }: Props) {
+  const [open, setOpen] = useState(initialOpen);
   const [loading, setLoading] = useState(false);
   const [guidance, setGuidance] = useState<TaskGuidance | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleOpen() {
-    setOpen((wasOpen) => !wasOpen);
+  async function fetchGuidance() {
     if (guidance || loading) return;
     setLoading(true);
     setError(null);
@@ -28,6 +30,18 @@ export default function TaskGuidancePanel({ taskId, language }: Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  useEffect(() => {
+    if (initialOpen) fetchGuidance();
+    // Only meant to run once, when the panel is opened on the user's
+    // behalf — a later taskId change would need a fresh mount anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleOpen() {
+    setOpen((wasOpen) => !wasOpen);
+    fetchGuidance();
   }
 
   return (

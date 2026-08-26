@@ -559,6 +559,13 @@ const STRINGS: Record<string, Record<UILanguage, string>> = {
     Français: "Tâches",
     Español: "Tareas",
   },
+  "Start this action": {
+    Türkçe: "Bu göreve başla",
+    Norsk: "Start denne handlingen",
+    Deutsch: "Diese Aufgabe starten",
+    Français: "Démarrer cette action",
+    Español: "Iniciar esta acción",
+  },
   "Activity Log": {
     Türkçe: "Etkinlik Günlüğü",
     Norsk: "Aktivitetslogg",
