@@ -33,6 +33,24 @@ export interface UploadResult {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+/** A per-browser anonymous id (no accounts in this app) so the backend can
+ * scope "my documents" without exposing every user's uploads to everyone —
+ * persisted in localStorage, sent as X-Owner-Id on every document request. */
+function getOwnerId(): string {
+  if (typeof window === "undefined") return "";
+  const key = "bureaucracy_agent_owner_id";
+  let id = window.localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(key, id);
+  }
+  return id;
+}
+
+function ownerHeaders(extra?: Record<string, string>): Record<string, string> {
+  return { "X-Owner-Id": getOwnerId(), ...extra };
+}
+
 export interface DocumentSummary {
   document_id: string;
   filename: string;
@@ -42,7 +60,7 @@ export interface DocumentSummary {
 }
 
 export async function listDocuments(): Promise<DocumentSummary[]> {
-  const response = await fetch(`${API_URL}/documents`);
+  const response = await fetch(`${API_URL}/documents`, { headers: ownerHeaders() });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -54,7 +72,7 @@ export async function listDocuments(): Promise<DocumentSummary[]> {
 }
 
 export async function getDocument(documentId: string): Promise<UploadResult> {
-  const response = await fetch(`${API_URL}/documents/${documentId}`);
+  const response = await fetch(`${API_URL}/documents/${documentId}`, { headers: ownerHeaders() });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -67,6 +85,7 @@ export async function getDocument(documentId: string): Promise<UploadResult> {
 export async function deleteDocument(documentId: string): Promise<void> {
   const response = await fetch(`${API_URL}/documents/${documentId}`, {
     method: "DELETE",
+    headers: ownerHeaders(),
   });
 
   if (!response.ok) {
@@ -87,6 +106,7 @@ export async function uploadDocument(
 
   const response = await fetch(`${API_URL}/documents/upload`, {
     method: "POST",
+    headers: ownerHeaders(),
     body: formData,
   });
 

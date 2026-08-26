@@ -68,7 +68,7 @@ export default function TaskCard({
 
   return (
     <div
-      className={`rounded-2xl border p-5 shadow-sm transition-opacity ${
+      className={`min-w-0 break-words rounded-2xl border p-5 shadow-sm transition-opacity ${
         dimmed
           ? "border-zinc-200 bg-zinc-50 opacity-60 dark:border-zinc-800 dark:bg-zinc-900/50"
           : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"

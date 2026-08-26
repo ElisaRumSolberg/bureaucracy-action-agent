@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Form, Header, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from app.agent.activity_log import list_events, log_event
@@ -38,7 +38,11 @@ def _ordered_tasks_for_document(db, document_id: str) -> list[dict]:
 
 
 @router.post("/upload")
-async def upload_document(file: UploadFile, target_language: str | None = Form(None)):
+async def upload_document(
+    file: UploadFile,
+    target_language: str | None = Form(None),
+    owner_id: str | None = Header(None, alias="X-Owner-Id"),
+):
     if file.content_type not in SUPPORTED_CONTENT_TYPES:
         raise HTTPException(
             status_code=400,
@@ -62,6 +66,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
             "filename": file.filename,
             "status": "processing",
             "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "owner_id": owner_id,
         }
     )
     log_event(db, document_id, "document_uploaded", f'Document "{file.filename}" uploaded')
@@ -379,9 +384,12 @@ def get_agent_events(document_id: str):
 
 
 @router.get("")
-def list_documents():
+def list_documents(owner_id: str | None = Header(None, alias="X-Owner-Id")):
+    if not owner_id:
+        return {"documents": []}
+
     db = get_firestore_client()
-    doc_snaps = db.collection("documents").stream()
+    doc_snaps = db.collection("documents").where("owner_id", "==", owner_id).stream()
     documents = []
     for snap in doc_snaps:
         data = snap.to_dict()
@@ -399,12 +407,14 @@ def list_documents():
 
 
 @router.get("/{document_id}")
-def get_document(document_id: str):
+def get_document(document_id: str, owner_id: str | None = Header(None, alias="X-Owner-Id")):
     db = get_firestore_client()
     doc_snap = db.collection("documents").document(document_id).get()
     if not doc_snap.exists:
         raise HTTPException(status_code=404, detail="Document not found.")
     doc_data = doc_snap.to_dict()
+    if doc_data.get("owner_id") and doc_data.get("owner_id") != owner_id:
+        raise HTTPException(status_code=404, detail="Document not found.")
 
     ordered_tasks = _ordered_tasks_for_document(db, document_id)
     tasks_with_ids = [
@@ -427,10 +437,14 @@ def get_document(document_id: str):
 
 
 @router.delete("/{document_id}")
-def delete_document(document_id: str):
+def delete_document(document_id: str, owner_id: str | None = Header(None, alias="X-Owner-Id")):
     db = get_firestore_client()
     doc_ref = db.collection("documents").document(document_id)
-    if not doc_ref.get().exists:
+    doc_snap = doc_ref.get()
+    if not doc_snap.exists:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    existing_owner = doc_snap.to_dict().get("owner_id")
+    if existing_owner and existing_owner != owner_id:
         raise HTTPException(status_code=404, detail="Document not found.")
 
     task_snaps = list(db.collection("tasks").where("documentId", "==", document_id).stream())
