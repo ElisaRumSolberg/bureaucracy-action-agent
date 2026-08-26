@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from app.agent.activity_log import list_events, log_event
 from app.agent.adk_agent import run_agent_pipeline
 from app.agent.document_extraction import (
     SUPPORTED_CONTENT_TYPES,
@@ -12,12 +13,23 @@ from app.agent.document_extraction import (
 )
 from app.agent.delay_impact import compute_downstream_impact, generate_delay_impact_summary
 from app.agent.guidance import generate_task_guidance
+from app.agent.next_best_action import get_next_best_action_index, is_blocked
 from app.agent.task_qa import answer_task_question
 from app.firestore_client import get_firestore_client
 from app.models.schemas import TaskGuidance
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+def _ordered_tasks_for_document(db, document_id: str) -> list[dict]:
+    """All sibling tasks for a document, as plain dicts ordered by their
+    index (parsed from the deterministic task_{document_id}_{index} id)."""
+    sibling_snaps = db.collection("tasks").where("documentId", "==", document_id).stream()
+    indexed: dict[int, dict] = {}
+    for snap in sibling_snaps:
+        indexed[int(snap.id.rsplit("_", 1)[1])] = snap.to_dict()
+    return [indexed[i] for i in sorted(indexed)]
 
 
 @router.post("/upload")
@@ -46,6 +58,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
             "status": "processing",
         }
     )
+    log_event(db, document_id, "document_uploaded", f'Document "{file.filename}" uploaded')
 
     try:
         document_summary, validation, result = await run_agent_pipeline(
@@ -60,6 +73,7 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
         db.collection("documents").document(document_id).update(
             {"status": "failed", "agentRunStatus": "error"}
         )
+        log_event(db, document_id, "pipeline_failed", "Agent pipeline failed — please try again")
         raise HTTPException(
             status_code=502, detail="Document analysis failed. Please try again."
         ) from exc
@@ -77,6 +91,36 @@ async def upload_document(file: UploadFile, target_language: str | None = Form(N
             "consequences": validation.consequences,
         }
     )
+
+    log_event(
+        db,
+        document_id,
+        "extraction_complete",
+        f"Agent extracted {len(validation.tasks)} action(s) from the document",
+    )
+    log_event(
+        db,
+        document_id,
+        "validation_complete",
+        "Agent validated requirements and built the dependency graph",
+    )
+
+    task_dicts = [task.model_dump() for task in validation.tasks]
+    initial_best_index = get_next_best_action_index(task_dicts)
+    if initial_best_index is not None:
+        log_event(
+            db,
+            document_id,
+            "recommendation_selected",
+            f'Agent selected the next action: "{validation.tasks[initial_best_index].title}"',
+        )
+    else:
+        log_event(
+            db,
+            document_id,
+            "recommendation_selected",
+            "No task is currently unblocked",
+        )
 
     tasks_with_ids = [
         {"id": task_id, **task.model_dump()}
@@ -105,10 +149,53 @@ def update_task_status(task_id: str, body: TaskStatusUpdate):
 
     db = get_firestore_client()
     task_ref = db.collection("tasks").document(task_id)
-    if not task_ref.get().exists:
+    task_snap = task_ref.get()
+    if not task_snap.exists:
         raise HTTPException(status_code=404, detail="Task not found.")
+    task_data = task_snap.to_dict()
+    document_id = task_data["documentId"]
+    target_index = int(task_id.rsplit("_", 1)[1])
+
+    ordered_before = _ordered_tasks_for_document(db, document_id)
+    previous_best = get_next_best_action_index(ordered_before)
 
     task_ref.update({"status": body.status})
+
+    ordered_after = [dict(t) for t in ordered_before]
+    ordered_after[target_index]["status"] = body.status
+    new_best = get_next_best_action_index(ordered_after)
+
+    title = task_data.get("title", "")
+    if body.status == "done":
+        log_event(db, document_id, "task_completed", f'Task completed: "{title}"')
+        for i, t in enumerate(ordered_after):
+            if (
+                i != target_index
+                and target_index in t.get("dependencies", [])
+                and is_blocked(ordered_before, i)
+                and not is_blocked(ordered_after, i)
+            ):
+                log_event(db, document_id, "task_unblocked", f'Task unblocked: "{t.get("title", "")}"')
+    else:
+        log_event(db, document_id, "task_reopened", f'Task reopened: "{title}"')
+
+    if new_best != previous_best:
+        if new_best is not None:
+            new_title = ordered_after[new_best].get("title", "")
+            log_event(
+                db,
+                document_id,
+                "recommendation_changed",
+                f'Recommendation changed to: "{new_title}"',
+            )
+        else:
+            log_event(
+                db,
+                document_id,
+                "recommendation_changed",
+                "No task is currently unblocked",
+            )
+
     return {"id": task_id, "status": body.status}
 
 
@@ -246,11 +333,7 @@ async def get_delay_impact(task_id: str):
     doc_snap = db.collection("documents").document(document_id).get()
     doc_data = doc_snap.to_dict() if doc_snap.exists else {}
 
-    sibling_snaps = db.collection("tasks").where("documentId", "==", document_id).stream()
-    indexed: dict[int, dict] = {}
-    for snap in sibling_snaps:
-        indexed[int(snap.id.rsplit("_", 1)[1])] = snap.to_dict()
-    ordered_tasks = [indexed[i] for i in sorted(indexed)]
+    ordered_tasks = _ordered_tasks_for_document(db, document_id)
 
     target_index = int(task_id.rsplit("_", 1)[1])
     impact = compute_downstream_impact(ordered_tasks, target_index)
@@ -276,3 +359,13 @@ async def get_delay_impact(task_id: str):
         "downstream_count": impact["downstream_count"],
         "downstream_titles": impact["downstream_titles"],
     }
+
+
+@router.get("/{document_id}/events")
+def get_agent_events(document_id: str):
+    db = get_firestore_client()
+    doc_snap = db.collection("documents").document(document_id).get()
+    if not doc_snap.exists:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    return {"events": list_events(db, document_id)}

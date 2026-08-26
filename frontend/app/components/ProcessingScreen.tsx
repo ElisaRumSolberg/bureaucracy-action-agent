@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+// Wording matches the real agent activity log events emitted server-side
+// during this same request (see backend/app/routes/documents.py) so the
+// story told here and the one in the Agent Activity feed afterward agree.
 const STEPS = [
-  "Reading document...",
-  "Extracting required actions...",
-  "Detecting deadlines...",
-  "Building task dependencies...",
-  "Saving action plan...",
+  "Agent reading and extracting actions from the document...",
+  "Agent validating requirements and building the dependency graph...",
+  "Agent selecting the next best action...",
+  "Saving the workflow...",
 ];
 
 export default function ProcessingScreen() {

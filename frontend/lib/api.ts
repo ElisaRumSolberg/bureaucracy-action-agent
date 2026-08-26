@@ -88,6 +88,24 @@ export async function updateConditionStatus(
   }
 }
 
+export interface AgentEvent {
+  type: string;
+  message: string;
+  created_at: string;
+}
+
+export async function getAgentEvents(documentId: string): Promise<AgentEvent[]> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/events`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not load agent activity.");
+  }
+
+  const data = await response.json();
+  return data.events as AgentEvent[];
+}
+
 export interface TaskGuidance {
   document_requirements: string[];
   suggested_steps: string[];

@@ -1,4 +1,7 @@
-import { getNextBestAction } from "@/lib/taskGraph";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { getNextBestAction, isSatisfied } from "@/lib/taskGraph";
 import { renderReason } from "@/lib/reasonTranslations";
 import type { Task } from "@/lib/api";
 
@@ -7,8 +10,45 @@ interface Props {
   language?: string;
 }
 
+const CHANGE_NOTICE_MS = 4000;
+
 export default function NextBestAction({ tasks, language }: Props) {
   const next = getNextBestAction(tasks);
+
+  const prevTasksRef = useRef<Task[] | null>(null);
+  const prevIdRef = useRef<string | null>(null);
+  const [changeNote, setChangeNote] = useState<string | null>(null);
+
+  // Detect when the agent's own recommendation moves to a different task —
+  // this is what makes the re-evaluation loop (task done -> dependency
+  // satisfied -> next best action recomputed) visible instead of silent.
+  useEffect(() => {
+    const currentId = next?.task.id ?? null;
+    const prevTasks = prevTasksRef.current;
+    const prevId = prevIdRef.current;
+
+    if (prevId !== null && currentId !== null && currentId !== prevId && prevTasks && next) {
+      const unlockedByIndex = next.task.dependencies.find((depIndex) => {
+        const prevDep = prevTasks[depIndex];
+        const currDep = tasks[depIndex];
+        return prevDep && currDep && !isSatisfied(prevDep) && isSatisfied(currDep);
+      });
+      const unlockedTitle =
+        unlockedByIndex !== undefined ? tasks[unlockedByIndex]?.title : undefined;
+      setChangeNote(
+        unlockedTitle
+          ? `Updated automatically — unlocked after you completed "${unlockedTitle}"`
+          : "Updated automatically based on your progress"
+      );
+      const timeout = setTimeout(() => setChangeNote(null), CHANGE_NOTICE_MS);
+      prevIdRef.current = currentId;
+      prevTasksRef.current = tasks;
+      return () => clearTimeout(timeout);
+    }
+
+    prevIdRef.current = currentId;
+    prevTasksRef.current = tasks;
+  }, [tasks, next]);
 
   if (!next) {
     const allDone = tasks.length > 0 && tasks.every((t) => t.status === "done");
@@ -29,7 +69,17 @@ export default function NextBestAction({ tasks, language }: Props) {
   const reasonTexts = next.reasons.map((item) => renderReason(item, language)).filter(Boolean);
 
   return (
-    <div className="rounded-2xl border border-zinc-900 bg-zinc-900 p-5 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
+    <div
+      className={`rounded-2xl border border-zinc-900 bg-zinc-900 p-5 text-white transition-shadow dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 ${
+        changeNote ? "ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-black" : ""
+      }`}
+    >
+      {changeNote && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-emerald-400 dark:text-emerald-600">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 dark:bg-emerald-600" />
+          {changeNote}
+        </p>
+      )}
       <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
         {next.isConditionalPick ? "If this applies to you" : "Recommended next action"}
       </p>

@@ -3,6 +3,7 @@ import TaskCard from "./TaskCard";
 import LanguageSelect from "./LanguageSelect";
 import NextBestAction from "./NextBestAction";
 import ActionFlow from "./ActionFlow";
+import AgentActivityFeed from "./AgentActivityFeed";
 import { getNextBestAction } from "@/lib/taskGraph";
 
 interface Props {
@@ -97,8 +98,14 @@ export default function ResultsScreen({
       </div>
 
       {result.tasks.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
           <NextBestAction tasks={result.tasks} language={language} />
+          <AgentActivityFeed
+            documentId={result.document_id}
+            refreshToken={result.tasks
+              .map((t) => `${t.id}:${t.status}:${t.condition_status}`)
+              .join(",")}
+          />
         </div>
       )}
 
