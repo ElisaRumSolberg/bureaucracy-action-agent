@@ -11,6 +11,15 @@ interface Props {
    * is open, since the backend is the source of truth for what happened. */
   refreshToken: string;
   language?: string;
+  /** Skip the collapse/toggle chrome and always show the feed — for a
+   * dedicated Activity Log page rather than an inline panel. */
+  alwaysOpen?: boolean;
+  /** Show only the most recent N events (still oldest-first within that
+   * slice) — for a small "Recent Activity" preview widget. */
+  limit?: number;
+  /** Shown next to the header when limited, e.g. a "View all" link to the
+   * full Activity Log view. */
+  onViewAll?: () => void;
 }
 
 const EVENT_ICON: Record<string, string> = {
@@ -25,8 +34,15 @@ const EVENT_ICON: Record<string, string> = {
   pipeline_failed: "⚠️",
 };
 
-export default function AgentActivityFeed({ documentId, refreshToken, language }: Props) {
-  const [open, setOpen] = useState(false);
+export default function AgentActivityFeed({
+  documentId,
+  refreshToken,
+  language,
+  alwaysOpen = false,
+  limit,
+  onViewAll,
+}: Props) {
+  const [open, setOpen] = useState(alwaysOpen);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,15 +68,33 @@ export default function AgentActivityFeed({ documentId, refreshToken, language }
     };
   }, [documentId, refreshToken, open]);
 
+  const displayedEvents = limit && limit < events.length ? events.slice(-limit) : events;
+
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-      >
-        <span>🤖 {t("Agent activity", language)}</span>
-        <span className="text-xs text-zinc-400">{open ? t("Hide", language) : t("Show", language)}</span>
-      </button>
+      {alwaysOpen ? (
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            🤖 {t(onViewAll ? "Recent Activity" : "Agent activity", language)}
+          </span>
+          {onViewAll && (
+            <button
+              onClick={onViewAll}
+              className="text-xs font-medium text-brand hover:underline dark:text-indigo-400"
+            >
+              {t("View all", language)}
+            </button>
+          )}
+        </div>
+      ) : (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+        >
+          <span>🤖 {t("Agent activity", language)}</span>
+          <span className="text-xs text-zinc-400">{open ? t("Hide", language) : t("Show", language)}</span>
+        </button>
+      )}
 
       {open && (
         <div className="border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
@@ -70,7 +104,7 @@ export default function AgentActivityFeed({ documentId, refreshToken, language }
             <p className="text-xs text-zinc-400">{t("No activity yet.", language)}</p>
           )}
           <ol className="space-y-2">
-            {events.map((event, idx) => (
+            {displayedEvents.map((event, idx) => (
               <li key={idx} className="flex gap-2 text-xs text-zinc-600 dark:text-zinc-400">
                 <span>{EVENT_ICON[event.type] ?? "•"}</span>
                 <span>{event.message}</span>
