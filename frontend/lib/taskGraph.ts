@@ -13,6 +13,47 @@ export function blockingCount(tasks: Task[], index: number): number {
   return tasks.filter((t) => t.dependencies.includes(index)).length;
 }
 
+export function computeLevels(tasks: Task[]): number[] {
+  const levels = new Array(tasks.length).fill(-1);
+
+  function levelOf(index: number, visiting: Set<number>): number {
+    if (levels[index] !== -1) return levels[index];
+    if (visiting.has(index)) return 0; // guard against a cyclic reference
+    visiting.add(index);
+    const deps = tasks[index].dependencies.filter((d) => d >= 0 && d < tasks.length);
+    const level = deps.length === 0 ? 0 : Math.max(...deps.map((d) => levelOf(d, visiting))) + 1;
+    levels[index] = level;
+    return level;
+  }
+
+  tasks.forEach((_, index) => levelOf(index, new Set()));
+  return levels;
+}
+
+/** The longest dependency chain end-to-end — the sequence of tasks that
+ * actually gates completion, as opposed to work that could happen in
+ * parallel. Walks backward from the deepest task, at each step following
+ * whichever dependency has the greatest depth. */
+export function computeCriticalPath(tasks: Task[]): number[] {
+  if (tasks.length === 0) return [];
+  const levels = computeLevels(tasks);
+
+  let current = levels.reduce(
+    (deepest, level, index) => (level > levels[deepest] ? index : deepest),
+    0
+  );
+
+  const path = [current];
+  while (tasks[current].dependencies.length > 0) {
+    const deps = tasks[current].dependencies.filter((d) => d >= 0 && d < tasks.length);
+    if (deps.length === 0) break;
+    current = deps.reduce((deepest, d) => (levels[d] > levels[deepest] ? d : deepest), deps[0]);
+    path.push(current);
+  }
+
+  return path.reverse();
+}
+
 const PRIORITY_RANK: Record<Task["priority"], number> = { high: 0, medium: 1, low: 2 };
 
 export interface NextBestAction {

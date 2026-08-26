@@ -5,6 +5,7 @@ export interface Task {
   title: string;
   description: string;
   deadline: string | null;
+  deadline_inherited: boolean;
   priority: Priority;
   priority_reason: string;
   risk_level: Priority;
@@ -14,6 +15,8 @@ export interface Task {
   confidence: number;
   source_excerpt: string;
   status: string;
+  is_conditional: boolean;
+  condition: string;
 }
 
 export interface UploadResult {

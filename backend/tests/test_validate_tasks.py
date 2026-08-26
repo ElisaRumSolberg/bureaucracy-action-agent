@@ -90,7 +90,10 @@ def test_deadline_far_away_is_low_priority():
     assert result.tasks[0].priority == "low"
 
 
-def test_blocking_task_forced_high_even_without_deadline():
+def test_blocking_task_escalates_one_tier_without_deadline():
+    """Blocking bumps priority by one tier (low -> medium), it doesn't force
+    "high" outright — in a long dependency chain almost everything blocks
+    something, so forcing high everywhere would make the badge meaningless."""
     extraction = ExtractionResult(
         document_summary="s",
         tasks=[
@@ -99,7 +102,21 @@ def test_blocking_task_forced_high_even_without_deadline():
         ],
     )
     result = validate_tasks(extraction)
-    assert result.tasks[0].priority == "high"  # blocks task 1
+    assert result.tasks[0].priority == "medium"  # blocks task 1, escalated from low
+
+
+def test_blocking_task_with_near_deadline_stays_high():
+    soon = (today_utc() + timedelta(days=1)).isoformat()
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[
+            make_task(title="Upload passport", deadline=soon, priority="low"),
+            make_task(title="Complete form", dependencies=[0], priority="low"),
+        ],
+    )
+    result = validate_tasks(extraction)
+    assert result.tasks[0].priority == "high"
+    assert "1 day" in result.tasks[0].priority_reason  # deadline reason wins over blocking
 
 
 def test_dependency_indices_remapped_after_dedupe():

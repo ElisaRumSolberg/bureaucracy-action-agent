@@ -15,14 +15,15 @@ const RISK_STYLES: Record<Task["priority"], string> = {
   low: "text-zinc-500 dark:text-zinc-400",
 };
 
-function formatDeadline(deadline: string | null): string {
+function formatDeadline(deadline: string | null, inherited: boolean): string {
   if (!deadline) return "No deadline stated";
   const date = new Date(`${deadline}T00:00:00`);
-  return date.toLocaleDateString(undefined, {
+  const formatted = date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+  return inherited ? `${formatted} (from final deadline)` : formatted;
 }
 
 function confidenceLabel(confidence: number): { label: string; needsVerification: boolean } {
@@ -92,6 +93,11 @@ export default function TaskCard({ task, index, allTasks, onToggleDone, language
       >
         {task.title}
       </h3>
+      {task.is_conditional && (
+        <p className="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400">
+          Conditional{task.condition ? ` — ${task.condition}` : ""}
+        </p>
+      )}
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
         {task.description}
       </p>
@@ -102,7 +108,7 @@ export default function TaskCard({ task, index, allTasks, onToggleDone, language
             Deadline
           </dt>
           <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {formatDeadline(task.deadline)}
+            {formatDeadline(task.deadline, task.deadline_inherited)}
           </dd>
         </div>
         <div>
@@ -121,7 +127,22 @@ export default function TaskCard({ task, index, allTasks, onToggleDone, language
             Depends on
           </dt>
           <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {dependencyTitles.length > 0 ? dependencyTitles.join(", ") : "Nothing"}
+            {dependencyTitles.length === 0 && "Nothing"}
+            {dependencyTitles.length > 0 && dependencyTitles.length <= 2 && (
+              dependencyTitles.join(", ")
+            )}
+            {dependencyTitles.length > 2 && (
+              <details>
+                <summary className="cursor-pointer select-none">
+                  {dependencyTitles.length} tasks
+                </summary>
+                <ul className="mt-1 list-inside list-disc font-normal text-zinc-600 dark:text-zinc-400">
+                  {dependencyTitles.map((title) => (
+                    <li key={title}>{title}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </dd>
         </div>
         <div>

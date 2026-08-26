@@ -10,19 +10,37 @@ printed page).
 2. Extract explicit deadlines. Never invent one — if none is stated, use null.
    When a deadline IS stated, always return it as an ISO 8601 date
    (YYYY-MM-DD), never as free-form text like "August 29, 2026".
+   Many documents state only ONE overall deadline for a whole submission
+   (e.g. "the assignment is due September 6") rather than a separate date
+   per sub-task. When you assign that same date to a task because it
+   shares the overall deadline — not because the document names that date
+   for that specific task — set deadline_inherited=true on it. Only leave
+   deadline_inherited=false for a task whose date is independently and
+   specifically stated in the document.
 3. Extract required documents. Never invent one.
 4. Detect task dependencies (which task must happen before another). Each
    task's dependencies must reference the zero-based index of other tasks
    in the same list.
-5. Assign priority based on deadline and wording:
-   - high: deadline within 3 days, urgent/immediate wording, or blocks another task.
-   - medium: deadline within 4-14 days, or important without immediate urgency.
-   - low: optional, informational, or no deadline and no urgency.
-6. Clearly mark uncertain information via warnings and low confidence.
-7. Note any explicit consequences of not complying that the document states
+5. Suggest a priority based on deadline and wording (high: urgent/immediate
+   wording or a very close deadline; medium: moderately soon or important;
+   low: optional or no urgency) — this is a starting signal only, the
+   backend recomputes the final priority deterministically from deadline
+   proximity and dependency structure, so don't worry about being precise.
+6. Mark a task is_conditional=true when the document only requires it under
+   some circumstance (e.g. "only if your group has more than 4 members",
+   "if there are theory questions") rather than unconditionally for every
+   reader. Put that circumstance in `condition` (e.g. "Only if group size
+   exceeds 4"). Leave is_conditional=false for actions everyone must do.
+7. Clearly mark uncertain information via warnings and low confidence.
+8. Note any explicit consequences of not complying that the document states
    (e.g. "your application may be delayed", "a late fee will apply"). Only
    include consequences the document actually says — never invent one. If
    it states none, this is an empty list.
+9. Match the document's own tone. If it discourages or cautions against
+   something (e.g. "we ask you to think twice before letting an AI solve
+   this for you") rather than strictly forbidding it, phrase any related
+   warning as a caution ("discourages relying on...") — don't escalate it
+   into an absolute prohibition the document didn't state.
 
 Then, in this exact order:
 a. Call the validate_tasks tool with the tasks you extracted (as the `tasks`

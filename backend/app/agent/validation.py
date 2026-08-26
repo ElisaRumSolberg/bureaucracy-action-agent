@@ -37,29 +37,47 @@ def _days_label(days_until: int) -> str:
     return f"Due in {days_until} days"
 
 
+_TIERS = ["low", "medium", "high"]
+
+
+def _escalate(tier: str) -> str:
+    return _TIERS[min(_TIERS.index(tier) + 1, len(_TIERS) - 1)]
+
+
 def resolve_priority(
     deadline: str | None, gemini_priority: str, blocks_another_task: bool, today: date
 ) -> tuple[str, str]:
-    """Backend priority check: deadline proximity and blocking status win over
-    Gemini's guess when they disagree, per the plan's priority rules.
+    """Backend priority check: deadline proximity wins over Gemini's guess
+    when they disagree, per the plan's priority rules.
+
+    Blocking another task escalates priority by one tier rather than forcing
+    "high" outright — in a long dependency chain (e.g. a 12-step assignment),
+    nearly every task blocks *something*, and forcing them all to "high"
+    makes the signal meaningless. A task with a distant deadline that merely
+    blocks one later step is more reasonably "medium" than "high".
 
     Returns (priority, reason) — the reason is always backend-computed so the
     UI can explain *why*, without trusting the model to justify itself.
     """
-    if blocks_another_task:
-        return "high", "Blocks another task"
-
     if deadline is None:
-        if gemini_priority == "medium":
-            return "medium", "Important but not time-bound"
-        return "low", "No deadline or urgency stated"
+        base_priority = "medium" if gemini_priority == "medium" else "low"
+        base_reason = (
+            "Important but not time-bound"
+            if base_priority == "medium"
+            else "No deadline or urgency stated"
+        )
+    else:
+        days_until = (date.fromisoformat(deadline) - today).days
+        if days_until <= HIGH_PRIORITY_DAYS:
+            base_priority, base_reason = "high", _days_label(days_until)
+        elif days_until <= MEDIUM_PRIORITY_DAYS:
+            base_priority, base_reason = "medium", _days_label(days_until)
+        else:
+            base_priority, base_reason = "low", f"Deadline is {days_until} days away"
 
-    days_until = (date.fromisoformat(deadline) - today).days
-    if days_until <= HIGH_PRIORITY_DAYS:
-        return "high", _days_label(days_until)
-    if days_until <= MEDIUM_PRIORITY_DAYS:
-        return "medium", _days_label(days_until)
-    return "low", f"Deadline is {days_until} days away"
+    if not blocks_another_task or base_priority == "high":
+        return base_priority, base_reason
+    return _escalate(base_priority), "Blocks another task"
 
 
 def resolve_risk(
@@ -69,20 +87,24 @@ def resolve_risk(
     today: date,
 ) -> tuple[str, str]:
     """Risk is priority's sibling: it also weighs extraction confidence, so a
-    vague/uncertain task can be flagged even when it has no near deadline."""
+    vague/uncertain task can be flagged even when it has no near deadline.
+    Blocking escalates by one tier, same reasoning as resolve_priority."""
     days_until = (date.fromisoformat(deadline) - today).days if deadline else None
 
-    if blocks_another_task:
-        return "high", "Blocks other tasks — a delay here cascades."
     if days_until is not None and days_until <= HIGH_PRIORITY_DAYS:
-        return "high", "Deadline is very close."
-    if confidence < LOW_CONFIDENCE_THRESHOLD:
-        return "medium", "Low extraction confidence — verify against the source."
-    if days_until is None:
-        return "medium", "No explicit deadline was stated."
-    if days_until <= MEDIUM_PRIORITY_DAYS:
-        return "medium", _days_label(days_until)
-    return "low", "No immediate risk detected."
+        base_risk, base_reason = "high", "Deadline is very close."
+    elif confidence < LOW_CONFIDENCE_THRESHOLD:
+        base_risk, base_reason = "medium", "Low extraction confidence — verify against the source."
+    elif days_until is None:
+        base_risk, base_reason = "medium", "No explicit deadline was stated."
+    elif days_until <= MEDIUM_PRIORITY_DAYS:
+        base_risk, base_reason = "medium", _days_label(days_until)
+    else:
+        base_risk, base_reason = "low", "No immediate risk detected."
+
+    if not blocks_another_task or base_risk == "high":
+        return base_risk, base_reason
+    return _escalate(base_risk), "Blocks other tasks — a delay here cascades."
 
 
 def flag_low_confidence(confidence: float, title: str, warnings: list[str]) -> None:

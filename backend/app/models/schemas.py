@@ -7,11 +7,14 @@ class Task(BaseModel):
     title: str
     description: str
     deadline: Optional[str] = None
+    deadline_inherited: bool = False
     priority: str  # high | medium | low
     dependencies: list[int] = []
     required_documents: list[str] = []
     confidence: float
     source_excerpt: str
+    is_conditional: bool = False
+    condition: str = ""
 
 
 class ExtractionResult(BaseModel):
