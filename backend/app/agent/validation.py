@@ -107,6 +107,40 @@ def resolve_risk(
     return _escalate(base_risk), "Blocks other tasks — a delay here cascades."
 
 
+def remove_cyclic_dependencies(
+    dependencies: list[list[int]], titles: list[str], warnings: list[str]
+) -> list[list[int]]:
+    """Drop any dependency edge that would close a cycle (A depends on B who
+    (transitively) already depends on A). Builds the DAG incrementally,
+    checking reachability before accepting each edge, so cycles longer than
+    a simple A<->B pair are caught too."""
+    approved: list[set[int]] = [set() for _ in dependencies]
+
+    def reaches(start: int, target: int, seen: set[int]) -> bool:
+        if start == target:
+            return True
+        seen.add(start)
+        for nxt in approved[start]:
+            if nxt not in seen and reaches(nxt, target, seen):
+                return True
+        return False
+
+    result: list[list[int]] = []
+    for index, deps in enumerate(dependencies):
+        kept: list[int] = []
+        for dep in deps:
+            if reaches(dep, index, set()):
+                warnings.append(
+                    f"Dropped a circular dependency: '{titles[index]}' -> "
+                    f"'{titles[dep]}' would create a cycle."
+                )
+                continue
+            kept.append(dep)
+            approved[index].add(dep)
+        result.append(sorted(kept))
+    return result
+
+
 def flag_low_confidence(confidence: float, title: str, warnings: list[str]) -> None:
     if confidence < LOW_CONFIDENCE_THRESHOLD:
         warnings.append(

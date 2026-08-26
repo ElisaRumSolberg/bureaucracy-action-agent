@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Task(BaseModel):
@@ -9,8 +9,8 @@ class Task(BaseModel):
     deadline: Optional[str] = None
     deadline_inherited: bool = False
     priority: str  # high | medium | low
-    dependencies: list[int] = []
-    required_documents: list[str] = []
+    dependencies: list[int] = Field(default_factory=list)
+    required_documents: list[str] = Field(default_factory=list)
     confidence: float
     source_excerpt: str
     is_conditional: bool = False
@@ -20,9 +20,9 @@ class Task(BaseModel):
 class ExtractionResult(BaseModel):
     document_summary: str
     tasks: list[Task]
-    warnings: list[str] = []
-    missing_information: list[str] = []
-    consequences: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    consequences: list[str] = Field(default_factory=list)
 
 
 class ValidatedTask(Task):
@@ -34,9 +34,9 @@ class ValidatedTask(Task):
 
 class ValidationResult(BaseModel):
     tasks: list[ValidatedTask]
-    warnings: list[str] = []
-    missing_information: list[str] = []
-    consequences: list[str] = []
+    warnings: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    consequences: list[str] = Field(default_factory=list)
 
 
 class SaveTasksResult(BaseModel):

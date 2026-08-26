@@ -208,3 +208,42 @@ def test_consequences_pass_through_from_extraction():
     )
     result = validate_tasks(extraction)
     assert result.consequences == ["Your application may be delayed."]
+
+
+def test_circular_dependency_is_dropped_with_warning():
+    """A depends on B and B depends on A — one edge must be dropped or the
+    UI's dependency graph and Next Best Action logic would deadlock."""
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[
+            make_task(title="Task A", dependencies=[1]),
+            make_task(title="Task B", dependencies=[0]),
+        ],
+    )
+    result = validate_tasks(extraction)
+    # Exactly one direction of the cycle should survive.
+    assert (result.tasks[0].dependencies == [1]) != (result.tasks[1].dependencies == [0])
+    assert any("circular dependency" in w.lower() for w in result.warnings)
+
+
+def test_three_way_cycle_is_broken():
+    extraction = ExtractionResult(
+        document_summary="s",
+        tasks=[
+            make_task(title="Task A", dependencies=[2]),
+            make_task(title="Task B", dependencies=[0]),
+            make_task(title="Task C", dependencies=[1]),
+        ],
+    )
+    result = validate_tasks(extraction)
+    # No task should be able to (transitively) depend on itself afterward.
+    graph = [t.dependencies for t in result.tasks]
+
+    def reaches(start, target, seen):
+        if start == target:
+            return True
+        seen.add(start)
+        return any(n not in seen and reaches(n, target, seen) for n in graph[start])
+
+    for i in range(len(graph)):
+        assert not any(reaches(dep, i, set()) for dep in graph[i])

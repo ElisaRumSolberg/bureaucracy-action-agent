@@ -65,14 +65,27 @@ export interface NextBestAction {
   priorityReason: string;
   blocksCount: number;
   mentionsBlockingAlready: boolean;
+  /** True when every unblocked task left is conditional — we don't know if
+   * the condition holds for this user, so the UI should hedge ("if this
+   * applies to you") rather than recommend it outright. */
+  isConditionalPick: boolean;
 }
 
 export function getNextBestAction(tasks: Task[]): NextBestAction | null {
-  const eligible = tasks
+  const unblocked = tasks
     .map((task, index) => ({ task, index }))
     .filter(({ task, index }) => !isDone(task) && !isBlocked(tasks, index));
 
-  if (eligible.length === 0) return null;
+  if (unblocked.length === 0) return null;
+
+  // Prefer a task everyone must do — we can't tell whether a conditional
+  // task's condition (e.g. "only if your group has more than 4 members")
+  // applies to this user, so recommending it as *the* next action would be
+  // presumptuous. Only fall back to a conditional task if nothing else
+  // is available.
+  const unconditional = unblocked.filter(({ task }) => !task.is_conditional);
+  const eligible = unconditional.length > 0 ? unconditional : unblocked;
+  const isConditionalPick = unconditional.length === 0;
 
   eligible.sort((a, b) => {
     const priorityDiff = PRIORITY_RANK[a.task.priority] - PRIORITY_RANK[b.task.priority];
@@ -96,5 +109,6 @@ export function getNextBestAction(tasks: Task[]): NextBestAction | null {
     priorityReason,
     blocksCount: blockingCount(tasks, best.index),
     mentionsBlockingAlready: priorityReason.toLowerCase().includes("block"),
+    isConditionalPick,
   };
 }

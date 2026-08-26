@@ -35,11 +35,16 @@ export default function NextBestAction({ tasks, language }: Props) {
   return (
     <div className="rounded-2xl border border-zinc-900 bg-zinc-900 p-5 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
       <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-        Recommended next action
+        {next.isConditionalPick ? "If this applies to you" : "Recommended next action"}
       </p>
       <h3 className="mt-1 text-xl font-semibold">
         Task {next.index + 1}: {next.task.title}
       </h3>
+      {next.isConditionalPick && next.task.condition && (
+        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
+          Condition: {next.task.condition}
+        </p>
+      )}
       <p className="mt-2 text-sm text-zinc-300 dark:text-zinc-600">
         <span className="font-medium text-zinc-100 dark:text-zinc-800">Why?</span>{" "}
         {reason}.

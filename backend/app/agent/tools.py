@@ -1,8 +1,7 @@
-import uuid
-
 from app.agent.validation import (
     flag_low_confidence,
     normalize_deadline,
+    remove_cyclic_dependencies,
     resolve_priority,
     resolve_risk,
     today_utc,
@@ -53,6 +52,10 @@ def validate_tasks(extraction: ExtractionResult) -> ValidationResult:
                 deps.add(new_dep)
         remapped_dependencies.append(sorted(deps))
 
+    remapped_dependencies = remove_cyclic_dependencies(
+        remapped_dependencies, [t.title for t in deduped], warnings
+    )
+
     blocks_another_task = {dep for deps in remapped_dependencies for dep in deps}
     today = today_utc()
 
@@ -97,12 +100,25 @@ def validate_tasks(extraction: ExtractionResult) -> ValidationResult:
 
 
 def save_tasks(document_id: str, validation: ValidationResult) -> SaveTasksResult:
-    """Tool 3: persist validated tasks to Firestore."""
+    """Tool 3: persist validated tasks to Firestore.
+
+    Task IDs are deterministic (document_id + position), not random, so a
+    pipeline retry that re-runs this after a partial success overwrites the
+    same Firestore docs instead of writing duplicates alongside them.
+    """
     db = get_firestore_client()
+
+    # Clear out any previously-saved tasks for this document first, so a
+    # retry that produces a different task count doesn't leave stale docs
+    # behind from a prior attempt's longer task list.
+    existing = db.collection("tasks").where("documentId", "==", document_id).stream()
+    for doc in existing:
+        doc.reference.delete()
+
     saved_ids: list[str] = []
 
-    for task in validation.tasks:
-        task_id = f"task_{uuid.uuid4().hex[:8]}"
+    for index, task in enumerate(validation.tasks):
+        task_id = f"task_{document_id}_{index}"
         db.collection("tasks").document(task_id).set(
             {
                 "documentId": document_id,
