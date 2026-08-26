@@ -124,7 +124,8 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mx-auto flex max-w-4xl items-center px-6 py-4">
+        <div className="mx-auto flex max-w-4xl items-center gap-2 px-6 py-4">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-brand" aria-hidden="true" />
           <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             Bureaucracy Action Agent
           </span>

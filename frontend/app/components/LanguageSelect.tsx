@@ -33,7 +33,7 @@ export default function LanguageSelect({ onChange, label, compact }: Props) {
           setLanguageChoice(e.target.value);
           if (e.target.value !== "__custom__") emit(e.target.value, customLanguage);
         }}
-        className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+        className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-800 outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500"
       >
         {LANGUAGE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -51,7 +51,7 @@ export default function LanguageSelect({ onChange, label, compact }: Props) {
             if (e.key === "Enter") emit(languageChoice, customLanguage);
           }}
           placeholder="e.g. Italiano, 日本語, العربية"
-          className="w-56 rounded-full border border-zinc-300 bg-white px-4 py-2 text-center text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+          className="w-56 rounded-full border border-zinc-300 bg-white px-4 py-2 text-center text-sm text-zinc-800 outline-none focus:border-brand focus:ring-1 focus:ring-brand dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:focus:border-indigo-500 dark:focus:ring-indigo-500"
         />
       )}
     </div>

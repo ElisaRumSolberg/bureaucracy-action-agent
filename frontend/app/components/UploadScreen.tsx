@@ -24,7 +24,7 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-4 px-6 py-6 text-center">
       <div>
-        <span className="inline-flex items-center rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+        <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand-light px-3 py-1 text-xs font-medium text-brand dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-400">
           Powered by Gemini + Google ADK
         </span>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl">
@@ -52,8 +52,8 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
         onClick={() => inputRef.current?.click()}
         className={`flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed px-10 py-6 transition-colors ${
           isDragging
-            ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-900"
-            : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
+            ? "border-brand bg-brand-light dark:border-indigo-500 dark:bg-indigo-950/30"
+            : "border-zinc-300 hover:border-brand/60 dark:border-zinc-700 dark:hover:border-indigo-500/60"
         }`}
       >
         <svg
@@ -62,7 +62,7 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
           fill="none"
           stroke="currentColor"
           strokeWidth={1.5}
-          className="h-7 w-7 text-zinc-400"
+          className="h-7 w-7 text-brand dark:text-indigo-400"
         >
           <path
             strokeLinecap="round"

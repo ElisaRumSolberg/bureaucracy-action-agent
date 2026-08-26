@@ -27,7 +27,7 @@ function NodeChip({
         done
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
           : isNext
-            ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+            ? "border-brand bg-brand text-white dark:border-indigo-500 dark:bg-indigo-500"
             : "border-zinc-300 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
       }`}
     >
@@ -76,7 +76,7 @@ function AllTasksView({ tasks, highlightIndex }: Props) {
                     done
                       ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
                       : isNext
-                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                        ? "border-brand bg-brand text-white dark:border-indigo-500 dark:bg-indigo-500"
                         : blocked
                           ? "border-zinc-200 bg-zinc-100 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-500"
                           : "border-zinc-300 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
@@ -115,7 +115,7 @@ export default function ActionFlow({ tasks, highlightIndex, language }: Props) {
               onClick={() => setView(option)}
               className={`rounded-full px-3 py-1 font-medium transition-colors ${
                 view === option
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  ? "bg-brand text-white dark:bg-indigo-500"
                   : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
               }`}
             >

@@ -80,7 +80,7 @@ export default function TaskCard({
             type="checkbox"
             checked={isDone}
             onChange={() => onToggleDone(task)}
-            className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-300 dark:border-zinc-600"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-300 accent-emerald-600 dark:border-zinc-600"
           />
           <span className="flex flex-col gap-1">
             <span
@@ -111,20 +111,20 @@ export default function TaskCard({
         {task.title}
       </h3>
       {task.is_conditional && (
-        <div className="mt-1.5 rounded-lg border border-sky-100 bg-sky-50/60 p-2.5 dark:border-sky-900/50 dark:bg-sky-950/30">
-          <p className="text-xs font-medium text-sky-700 dark:text-sky-400">
+        <div className="mt-1.5 rounded-lg border border-brand/20 bg-brand-light p-2.5 dark:border-indigo-900/50 dark:bg-indigo-950/30">
+          <p className="text-xs font-medium text-brand dark:text-indigo-400">
             {t("Conditional", language)}{task.condition ? ` — ${task.condition}` : ""}
           </p>
 
           {task.condition_status === "unknown" && (
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-sky-700/80 dark:text-sky-400/80">
+              <span className="text-xs text-brand/80 dark:text-indigo-400/80">
                 {t("Does this apply to you?", language)}
               </span>
               <div className="flex gap-1.5">
                 <button
                   onClick={() => onSetConditionStatus(task, "applies")}
-                  className="rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-medium text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-zinc-900 dark:text-sky-400 dark:hover:bg-sky-950"
+                  className="rounded-full border border-brand/40 bg-white px-2 py-0.5 text-[11px] font-medium text-brand hover:bg-brand-light dark:border-indigo-800 dark:bg-zinc-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
                 >
                   {t("Yes", language)}
                 </button>

@@ -101,34 +101,35 @@ export default function NextBestAction({ tasks, language }: Props) {
 
   return (
     <div
-      className={`rounded-2xl border border-zinc-900 bg-zinc-900 p-5 text-white transition-shadow dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 ${
+      className={`rounded-2xl border border-zinc-200 border-l-4 border-l-brand bg-brand-light p-5 transition-shadow dark:border-zinc-800 dark:border-l-indigo-500 dark:bg-indigo-950/30 ${
         changeNote ? "ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-black" : ""
       }`}
     >
       {changeNote && (
-        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-emerald-400 dark:text-emerald-600">
-          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 dark:bg-emerald-600" />
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 dark:bg-emerald-400" />
           {changeNote}
         </p>
       )}
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-brand dark:text-indigo-400">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand dark:bg-indigo-400" />
         {next.isConditionalPick ? t("If this applies to you", language) : t("Recommended next action", language)}
       </p>
-      <h3 className="mt-1 text-xl font-semibold">
+      <h3 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
         {tTaskLabel(next.index + 1, language)}: {next.task.title}
       </h3>
       {next.isConditionalPick && next.task.condition && (
-        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-600">
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
           {t("Condition:", language)} {next.task.condition}
         </p>
       )}
-      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
         {t("Why?", language)}
       </p>
-      <ul className="mt-1 space-y-1 text-sm text-zinc-300 dark:text-zinc-600">
+      <ul className="mt-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-300">
         {reasonTexts.map((text, idx) => (
           <li key={idx} className="flex gap-2">
-            <span className="text-zinc-500 dark:text-zinc-400">•</span>
+            <span className="text-zinc-400 dark:text-zinc-500">•</span>
             <span>{text}</span>
           </li>
         ))}
