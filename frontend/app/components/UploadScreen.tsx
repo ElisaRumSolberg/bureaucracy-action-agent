@@ -22,15 +22,15 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-8 px-6 py-24 text-center">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-4 px-6 py-6 text-center">
       <div>
         <span className="inline-flex items-center rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
           Powered by Gemini + Google ADK
         </span>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl">
           Turn complex official documents into clear actions.
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-lg leading-7 text-zinc-600 dark:text-zinc-400">
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           Upload a document. Let the AI agent identify what you need to do,
           when you need to do it, and what comes first.
         </p>
@@ -50,7 +50,7 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
           handleFiles(e.dataTransfer.files);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`flex w-full cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-10 py-14 transition-colors ${
+        className={`flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-2xl border-2 border-dashed px-10 py-6 transition-colors ${
           isDragging
             ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-900"
             : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
@@ -62,7 +62,7 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
           fill="none"
           stroke="currentColor"
           strokeWidth={1.5}
-          className="h-10 w-10 text-zinc-400"
+          className="h-7 w-7 text-zinc-400"
         >
           <path
             strokeLinecap="round"
