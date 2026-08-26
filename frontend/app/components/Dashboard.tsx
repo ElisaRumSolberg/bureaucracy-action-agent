@@ -10,7 +10,8 @@ import AgentActivityFeed from "./AgentActivityFeed";
 import ProgressCard from "./ProgressCard";
 import UpcomingDeadlines from "./UpcomingDeadlines";
 import GuidanceView from "./GuidanceView";
-import { getNextBestAction } from "@/lib/taskGraph";
+import WorkflowCompleteSummary from "./WorkflowCompleteSummary";
+import { getNextBestAction, isDone } from "@/lib/taskGraph";
 import { t, tDetectedCount, tProgressDone } from "@/lib/uiTranslations";
 
 interface Props {
@@ -48,6 +49,7 @@ export default function Dashboard({
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
 
   const doneCount = result.tasks.filter((task) => task.status === "done").length;
+  const allDone = result.tasks.length > 0 && result.tasks.every(isDone);
   const deadlineCount = result.tasks.filter((task) => task.deadline).length;
   const dependencyCount = result.tasks.filter((task) => task.dependencies.length > 0).length;
   const nextBestAction = getNextBestAction(result.tasks);
@@ -151,10 +153,14 @@ export default function Dashboard({
                 }}
               />
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <ProgressCard tasks={result.tasks} language={language} />
-                <UpcomingDeadlines tasks={result.tasks} language={language} limit={4} />
-              </div>
+              {allDone ? (
+                <WorkflowCompleteSummary total={result.tasks.length} language={language} />
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <ProgressCard tasks={result.tasks} language={language} />
+                  <UpcomingDeadlines tasks={result.tasks} language={language} limit={4} />
+                </div>
+              )}
 
               <AgentActivityFeed
                 documentId={result.document_id}
@@ -165,7 +171,7 @@ export default function Dashboard({
                 onViewAll={() => setView("activitylog")}
               />
 
-              {result.warnings.length > 0 && (
+              {!allDone && result.warnings.length > 0 && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
                   <p className="font-medium">{t("Warnings", language)}</p>
                   <ul className="mt-1 list-inside list-disc space-y-1">
@@ -176,7 +182,7 @@ export default function Dashboard({
                 </div>
               )}
 
-              {result.missing_information.length > 0 && (
+              {!allDone && result.missing_information.length > 0 && (
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                   <p className="font-medium">{t("Missing information", language)}</p>
                   <ul className="mt-1 list-inside list-disc space-y-1">
@@ -187,7 +193,7 @@ export default function Dashboard({
                 </div>
               )}
 
-              {result.consequences.length > 0 && (
+              {!allDone && result.consequences.length > 0 && (
                 <div className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                   <p className="font-medium text-zinc-900 dark:text-zinc-100">
                     {t("Possible consequences", language)}

@@ -559,6 +559,27 @@ const STRINGS: Record<string, Record<UILanguage, string>> = {
     Français: "Tâches",
     Español: "Tareas",
   },
+  "Workflow complete": {
+    Türkçe: "İş akışı tamamlandı",
+    Norsk: "Arbeidsflyten er fullført",
+    Deutsch: "Arbeitsablauf abgeschlossen",
+    Français: "Flux de travail terminé",
+    Español: "Flujo de trabajo completado",
+  },
+  "No remaining blockers": {
+    Türkçe: "Kalan engel yok",
+    Norsk: "Ingen gjenværende blokkeringer",
+    Deutsch: "Keine verbleibenden Blockaden",
+    Français: "Aucun blocage restant",
+    Español: "Sin bloqueos restantes",
+  },
+  "You're done with this document.": {
+    Türkçe: "Bu belgeyle işiniz bitti.",
+    Norsk: "Du er ferdig med dette dokumentet.",
+    Deutsch: "Sie sind mit diesem Dokument fertig.",
+    Français: "Vous avez terminé avec ce document.",
+    Español: "Has terminado con este documento.",
+  },
   "Start this action": {
     Türkçe: "Bu göreve başla",
     Norsk: "Start denne handlingen",
