@@ -12,13 +12,30 @@ interface Props {
 }
 
 const CHANGE_NOTICE_MS = 4000;
+const CELEBRATION_MS = 5000;
 
 export default function NextBestAction({ tasks, language }: Props) {
   const next = getNextBestAction(tasks);
+  const allDone = tasks.length > 0 && tasks.every((task) => task.status === "done");
 
   const prevTasksRef = useRef<Task[] | null>(null);
   const prevIdRef = useRef<string | null>(null);
+  const prevAllDoneRef = useRef(false);
   const [changeNote, setChangeNote] = useState<string | null>(null);
+  const [justCompleted, setJustCompleted] = useState(false);
+
+  // Celebrate the moment the whole plan flips from "in progress" to "done"
+  // — a one-time animation, not a permanent state, so reloading an
+  // already-finished plan just shows the plain success card.
+  useEffect(() => {
+    if (allDone && !prevAllDoneRef.current) {
+      setJustCompleted(true);
+      const timeout = setTimeout(() => setJustCompleted(false), CELEBRATION_MS);
+      prevAllDoneRef.current = true;
+      return () => clearTimeout(timeout);
+    }
+    prevAllDoneRef.current = allDone;
+  }, [allDone]);
 
   // Detect when the agent's own recommendation moves to a different task —
   // this is what makes the re-evaluation loop (task done -> dependency
@@ -52,9 +69,22 @@ export default function NextBestAction({ tasks, language }: Props) {
   }, [tasks, next, language]);
 
   if (!next) {
-    const allDone = tasks.length > 0 && tasks.every((task) => task.status === "done");
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950">
+      <div
+        className={`relative overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-5 transition-shadow dark:border-emerald-900 dark:bg-emerald-950 ${
+          justCompleted
+            ? "ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-black"
+            : ""
+        }`}
+      >
+        {allDone && (
+          <span
+            className={`mb-1 block text-3xl ${justCompleted ? "animate-bounce" : ""}`}
+            aria-hidden="true"
+          >
+            🎉
+          </span>
+        )}
         <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
           {allDone ? t("All tasks complete", language) : t("Nothing is unblocked yet", language)}
         </p>
