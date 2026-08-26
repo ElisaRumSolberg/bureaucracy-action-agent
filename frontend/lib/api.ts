@@ -29,6 +29,7 @@ export interface UploadResult {
   missing_information: string[];
   consequences: string[];
   saved_task_ids: string[];
+  content_language?: string | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -77,6 +78,24 @@ export async function getDocument(documentId: string): Promise<UploadResult> {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new ApiError(body?.detail ?? "Could not load this document.");
+  }
+
+  return response.json();
+}
+
+export async function translateDocument(
+  documentId: string,
+  targetLanguage?: string
+): Promise<UploadResult> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/translate`, {
+    method: "POST",
+    headers: ownerHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ target_language: targetLanguage || null }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not translate this document.");
   }
 
   return response.json();

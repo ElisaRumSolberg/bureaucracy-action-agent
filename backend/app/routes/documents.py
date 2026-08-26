@@ -16,6 +16,7 @@ from app.agent.delay_impact import compute_downstream_impact, generate_delay_imp
 from app.agent.guidance import generate_task_guidance
 from app.agent.next_best_action import get_next_best_action_index, is_blocked
 from app.agent.task_qa import answer_task_question
+from app.agent.translate import translate_document_content
 from app.firestore_client import get_firestore_client
 from app.models.schemas import TaskGuidance, ValidatedTask
 
@@ -101,6 +102,13 @@ async def upload_document(
             "warnings": warnings,
             "missing_information": validation.missing_information,
             "consequences": validation.consequences,
+            # Snapshot as first generated — see save_tasks' original_* fields
+            # for why this is kept separate from the display copy above.
+            "original_summary": document_summary,
+            "original_warnings": warnings,
+            "original_missing_information": validation.missing_information,
+            "original_consequences": validation.consequences,
+            "content_language": target_language,
         }
     )
 
@@ -147,6 +155,7 @@ async def upload_document(
         "missing_information": validation.missing_information,
         "consequences": validation.consequences,
         "saved_task_ids": result.saved_task_ids,
+        "content_language": target_language,
     }
 
 
@@ -406,16 +415,7 @@ def list_documents(owner_id: str | None = Header(None, alias="X-Owner-Id")):
     return {"documents": documents}
 
 
-@router.get("/{document_id}")
-def get_document(document_id: str, owner_id: str | None = Header(None, alias="X-Owner-Id")):
-    db = get_firestore_client()
-    doc_snap = db.collection("documents").document(document_id).get()
-    if not doc_snap.exists:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    doc_data = doc_snap.to_dict()
-    if doc_data.get("owner_id") and doc_data.get("owner_id") != owner_id:
-        raise HTTPException(status_code=404, detail="Document not found.")
-
+def _build_document_response(db, document_id: str, doc_data: dict) -> dict:
     ordered_tasks = _ordered_tasks_for_document(db, document_id)
     tasks_with_ids = [
         # Re-validate through the model so older documents saved before a
@@ -433,7 +433,124 @@ def get_document(document_id: str, owner_id: str | None = Header(None, alias="X-
         "missing_information": doc_data.get("missing_information", []),
         "consequences": doc_data.get("consequences", []),
         "saved_task_ids": [t["id"] for t in tasks_with_ids],
+        "content_language": doc_data.get("content_language"),
     }
+
+
+def _get_owned_document(db, document_id: str, owner_id: str | None) -> dict:
+    doc_snap = db.collection("documents").document(document_id).get()
+    if not doc_snap.exists:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    doc_data = doc_snap.to_dict()
+    if doc_data.get("owner_id") and doc_data.get("owner_id") != owner_id:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return doc_data
+
+
+@router.get("/{document_id}")
+def get_document(document_id: str, owner_id: str | None = Header(None, alias="X-Owner-Id")):
+    db = get_firestore_client()
+    doc_data = _get_owned_document(db, document_id, owner_id)
+    return _build_document_response(db, document_id, doc_data)
+
+
+class TranslateRequest(BaseModel):
+    target_language: str | None = None
+
+
+@router.post("/{document_id}/translate")
+async def translate_document(
+    document_id: str,
+    body: TranslateRequest,
+    owner_id: str | None = Header(None, alias="X-Owner-Id"),
+):
+    db = get_firestore_client()
+    doc_data = _get_owned_document(db, document_id, owner_id)
+    ordered_tasks = _ordered_tasks_for_document(db, document_id)
+
+    original_summary = doc_data.get("original_summary", doc_data.get("summary", ""))
+    original_warnings = doc_data.get("original_warnings", doc_data.get("warnings", []))
+    original_missing = doc_data.get(
+        "original_missing_information", doc_data.get("missing_information", [])
+    )
+    original_consequences = doc_data.get(
+        "original_consequences", doc_data.get("consequences", [])
+    )
+
+    if not body.target_language:
+        # "Match the document's language" — always free, no Gemini call:
+        # just restore the untouched original-language snapshot.
+        doc_update = {
+            "summary": original_summary,
+            "warnings": original_warnings,
+            "missing_information": original_missing,
+            "consequences": original_consequences,
+            "content_language": None,
+        }
+        for i, task in enumerate(ordered_tasks):
+            db.collection("tasks").document(f"task_{document_id}_{i}").update(
+                {
+                    "title": task.get("original_title", task.get("title", "")),
+                    "description": task.get("original_description", task.get("description", "")),
+                    "condition": task.get("original_condition", task.get("condition", "")),
+                    "required_documents": task.get(
+                        "original_required_documents", task.get("required_documents", [])
+                    ),
+                }
+            )
+    else:
+        try:
+            translation = await translate_document_content(
+                target_language=body.target_language,
+                document_summary=original_summary,
+                warnings=original_warnings,
+                missing_information=original_missing,
+                consequences=original_consequences,
+                tasks=[
+                    {
+                        "title": task.get("original_title", task.get("title", "")),
+                        "description": task.get("original_description", task.get("description", "")),
+                        "condition": task.get("original_condition", task.get("condition", "")),
+                        "required_documents": task.get(
+                            "original_required_documents", task.get("required_documents", [])
+                        ),
+                    }
+                    for task in ordered_tasks
+                ],
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Translation failed for document %s", document_id)
+            raise HTTPException(
+                status_code=502, detail="Could not translate this document. Please try again."
+            ) from exc
+
+        doc_update = {
+            "summary": translation.document_summary,
+            "warnings": translation.warnings,
+            "missing_information": translation.missing_information,
+            "consequences": translation.consequences,
+            "content_language": body.target_language,
+        }
+        for i, translated_task in enumerate(translation.tasks):
+            db.collection("tasks").document(f"task_{document_id}_{i}").update(
+                {
+                    "title": translated_task.title,
+                    "description": translated_task.description,
+                    "condition": translated_task.condition,
+                    "required_documents": translated_task.required_documents,
+                }
+            )
+
+    db.collection("documents").document(document_id).update(doc_update)
+    log_event(
+        db,
+        document_id,
+        "document_translated",
+        f"Document translated to {body.target_language or 'its original language'}",
+    )
+
+    doc_data.update(doc_update)
+    return _build_document_response(db, document_id, doc_data)
 
 
 @router.delete("/{document_id}")

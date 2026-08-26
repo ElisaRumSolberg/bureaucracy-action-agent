@@ -9,6 +9,7 @@ import HistoryScreen from "./components/HistoryScreen";
 import {
   ApiError,
   getDocument,
+  translateDocument,
   updateConditionStatus,
   updateTaskStatus,
   uploadDocument,
@@ -23,13 +24,11 @@ export default function Home() {
   const [stage, setStage] = useState<Stage>("upload");
   const [result, setResult] = useState<UploadResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [resultLanguage, setResultLanguage] = useState<string | undefined>(undefined);
 
   async function handleFileSelected(file: File, targetLanguage?: string) {
     setErrorMessage(null);
-    setCurrentFile(file);
     setStage("processing");
     try {
       const uploadResult = await uploadDocument(file, targetLanguage);
@@ -45,11 +44,11 @@ export default function Home() {
   }
 
   async function handleChangeLanguage(targetLanguage: string | undefined) {
-    if (!currentFile || isReprocessing) return;
+    if (!result || isReprocessing) return;
     setIsReprocessing(true);
     try {
-      const uploadResult = await uploadDocument(currentFile, targetLanguage);
-      setResult(uploadResult);
+      const translated = await translateDocument(result.document_id, targetLanguage);
+      setResult(translated);
       setResultLanguage(targetLanguage);
     } catch (error) {
       setErrorMessage(
@@ -120,7 +119,6 @@ export default function Home() {
   function reset() {
     setResult(null);
     setErrorMessage(null);
-    setCurrentFile(null);
     setStage("upload");
   }
 
@@ -130,8 +128,7 @@ export default function Home() {
     try {
       const doc = await getDocument(documentId);
       setResult(doc);
-      setCurrentFile(null);
-      setResultLanguage(undefined);
+      setResultLanguage(doc.content_language ?? undefined);
       setStage("results");
     } catch (error) {
       setErrorMessage(

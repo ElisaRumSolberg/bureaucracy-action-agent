@@ -123,6 +123,15 @@ def save_tasks(document_id: str, validation: ValidationResult) -> SaveTasksResul
             {
                 "documentId": document_id,
                 **task.model_dump(),
+                # Snapshot of the text as first extracted — translating the
+                # document later always translates from this, never from a
+                # previous translation, so repeated language switches can't
+                # compound drift, and "match the document's language" is
+                # always free to restore exactly.
+                "original_title": task.title,
+                "original_description": task.description,
+                "original_condition": task.condition,
+                "original_required_documents": task.required_documents,
             }
         )
         saved_ids.append(task_id)
