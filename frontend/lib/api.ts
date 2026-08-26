@@ -1,4 +1,5 @@
 export type Priority = "high" | "medium" | "low";
+export type ConditionStatus = "unknown" | "applies" | "not_applicable";
 
 export interface Task {
   id: string;
@@ -17,6 +18,7 @@ export interface Task {
   status: string;
   is_conditional: boolean;
   condition: string;
+  condition_status: ConditionStatus;
 }
 
 export interface UploadResult {
@@ -70,6 +72,22 @@ export async function updateTaskStatus(
   }
 }
 
+export async function updateConditionStatus(
+  taskId: string,
+  conditionStatus: ConditionStatus
+): Promise<void> {
+  const response = await fetch(`${API_URL}/documents/tasks/${taskId}/condition-status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ condition_status: conditionStatus }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not update condition status.");
+  }
+}
+
 export interface TaskGuidance {
   document_requirements: string[];
   suggested_steps: string[];
@@ -86,6 +104,44 @@ export async function getTaskGuidance(taskId: string): Promise<TaskGuidance> {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new ApiError(body?.detail ?? "Could not generate guidance.");
+  }
+
+  return response.json();
+}
+
+export async function askTaskQuestion(
+  taskId: string,
+  question: string
+): Promise<string> {
+  const response = await fetch(`${API_URL}/documents/tasks/${taskId}/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not answer the question.");
+  }
+
+  const data = await response.json();
+  return data.answer as string;
+}
+
+export interface DelayImpact {
+  summary: string;
+  downstream_count: number;
+  downstream_titles: string[];
+}
+
+export async function getDelayImpact(taskId: string): Promise<DelayImpact> {
+  const response = await fetch(`${API_URL}/documents/tasks/${taskId}/delay-impact`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not compute delay impact.");
   }
 
   return response.json();

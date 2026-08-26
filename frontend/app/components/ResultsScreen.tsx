@@ -1,4 +1,4 @@
-import type { Task, UploadResult } from "@/lib/api";
+import type { ConditionStatus, Task, UploadResult } from "@/lib/api";
 import TaskCard from "./TaskCard";
 import LanguageSelect from "./LanguageSelect";
 import NextBestAction from "./NextBestAction";
@@ -9,6 +9,7 @@ interface Props {
   result: UploadResult;
   onReset: () => void;
   onToggleTask: (task: Task) => void;
+  onSetConditionStatus: (task: Task, conditionStatus: ConditionStatus) => void;
   onChangeLanguage: (language: string | undefined) => void;
   isReprocessing: boolean;
   language?: string;
@@ -18,6 +19,7 @@ export default function ResultsScreen({
   result,
   onReset,
   onToggleTask,
+  onSetConditionStatus,
   onChangeLanguage,
   isReprocessing,
   language,
@@ -147,6 +149,7 @@ export default function ResultsScreen({
             index={index}
             allTasks={result.tasks}
             onToggleDone={onToggleTask}
+            onSetConditionStatus={onSetConditionStatus}
             language={language}
           />
         ))}

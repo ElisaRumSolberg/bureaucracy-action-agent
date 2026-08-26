@@ -30,6 +30,10 @@ class ValidatedTask(Task):
     priority_reason: str = ""
     risk_level: str = "low"  # high | medium | low
     risk_reason: str = ""
+    # Only meaningful when is_conditional is True: whether the user has
+    # confirmed their situation matches the stated condition. "not_applicable"
+    # excludes the task from Next Best Action and from blocking other tasks.
+    condition_status: str = "unknown"  # unknown | applies | not_applicable
 
 
 class ValidationResult(BaseModel):

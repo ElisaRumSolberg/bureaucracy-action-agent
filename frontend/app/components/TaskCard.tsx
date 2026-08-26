@@ -1,7 +1,9 @@
-import type { Task } from "@/lib/api";
-import { isBlocked } from "@/lib/taskGraph";
+import type { ConditionStatus, Task } from "@/lib/api";
+import { isBlocked, isConditionNotApplicable } from "@/lib/taskGraph";
 import { translateReason } from "@/lib/reasonTranslations";
 import TaskGuidancePanel from "./TaskGuidancePanel";
+import TaskChatPanel from "./TaskChatPanel";
+import TaskDelayImpactPanel from "./TaskDelayImpactPanel";
 
 const PRIORITY_STYLES: Record<Task["priority"], string> = {
   high: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-950 dark:text-red-300 dark:ring-red-500/30",
@@ -39,21 +41,31 @@ interface Props {
   index: number;
   allTasks: Task[];
   onToggleDone: (task: Task) => void;
+  onSetConditionStatus: (task: Task, conditionStatus: ConditionStatus) => void;
   language?: string;
 }
 
-export default function TaskCard({ task, index, allTasks, onToggleDone, language }: Props) {
+export default function TaskCard({
+  task,
+  index,
+  allTasks,
+  onToggleDone,
+  onSetConditionStatus,
+  language,
+}: Props) {
   const dependencyTitles = task.dependencies.map(
     (depIndex) => allTasks[depIndex]?.title ?? `Task ${depIndex + 1}`
   );
   const isDone = task.status === "done";
-  const blocked = !isDone && isBlocked(allTasks, index);
+  const notApplicable = isConditionNotApplicable(task);
+  const blocked = !isDone && !notApplicable && isBlocked(allTasks, index);
   const confidence = confidenceLabel(task.confidence);
+  const dimmed = isDone || notApplicable;
 
   return (
     <div
       className={`rounded-2xl border p-5 shadow-sm transition-opacity ${
-        isDone
+        dimmed
           ? "border-zinc-200 bg-zinc-50 opacity-60 dark:border-zinc-800 dark:bg-zinc-900/50"
           : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
       }`}
@@ -95,9 +107,64 @@ export default function TaskCard({ task, index, allTasks, onToggleDone, language
         {task.title}
       </h3>
       {task.is_conditional && (
-        <p className="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400">
-          Conditional{task.condition ? ` — ${task.condition}` : ""}
-        </p>
+        <div className="mt-1.5 rounded-lg border border-sky-100 bg-sky-50/60 p-2.5 dark:border-sky-900/50 dark:bg-sky-950/30">
+          <p className="text-xs font-medium text-sky-700 dark:text-sky-400">
+            Conditional{task.condition ? ` — ${task.condition}` : ""}
+          </p>
+
+          {task.condition_status === "unknown" && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-sky-700/80 dark:text-sky-400/80">
+                Does this apply to you?
+              </span>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => onSetConditionStatus(task, "applies")}
+                  className="rounded-full border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-medium text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-zinc-900 dark:text-sky-400 dark:hover:bg-sky-950"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => onSetConditionStatus(task, "not_applicable")}
+                  className="rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                >
+                  No
+                </button>
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                  (leave unanswered if not sure)
+                </span>
+              </div>
+            </div>
+          )}
+
+          {task.condition_status === "applies" && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                Applies to you
+              </span>
+              <button
+                onClick={() => onSetConditionStatus(task, "unknown")}
+                className="text-[11px] text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                Change
+              </button>
+            </div>
+          )}
+
+          {task.condition_status === "not_applicable" && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                Doesn&apos;t apply — excluded from your plan
+              </span>
+              <button
+                onClick={() => onSetConditionStatus(task, "unknown")}
+                className="text-[11px] text-zinc-400 underline hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                Change
+              </button>
+            </div>
+          )}
+        </div>
       )}
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
         {task.description}
@@ -190,6 +257,8 @@ export default function TaskCard({ task, index, allTasks, onToggleDone, language
         )}
 
         <TaskGuidancePanel taskId={task.id} />
+        <TaskChatPanel taskId={task.id} />
+        <TaskDelayImpactPanel taskId={task.id} />
       </div>
     </div>
   );

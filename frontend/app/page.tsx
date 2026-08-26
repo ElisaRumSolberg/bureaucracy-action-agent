@@ -6,8 +6,10 @@ import ProcessingScreen from "./components/ProcessingScreen";
 import ResultsScreen from "./components/ResultsScreen";
 import {
   ApiError,
+  updateConditionStatus,
   updateTaskStatus,
   uploadDocument,
+  type ConditionStatus,
   type Task,
   type UploadResult,
 } from "@/lib/api";
@@ -84,6 +86,34 @@ export default function Home() {
     }
   }
 
+  async function handleSetConditionStatus(task: Task, conditionStatus: ConditionStatus) {
+    const previous = task.condition_status;
+    setResult((current) =>
+      current
+        ? {
+            ...current,
+            tasks: current.tasks.map((t) =>
+              t.id === task.id ? { ...t, condition_status: conditionStatus } : t
+            ),
+          }
+        : current
+    );
+    try {
+      await updateConditionStatus(task.id, conditionStatus);
+    } catch {
+      setResult((current) =>
+        current
+          ? {
+              ...current,
+              tasks: current.tasks.map((t) =>
+                t.id === task.id ? { ...t, condition_status: previous } : t
+              ),
+            }
+          : current
+      );
+    }
+  }
+
   function reset() {
     setResult(null);
     setErrorMessage(null);
@@ -110,6 +140,7 @@ export default function Home() {
           result={result}
           onReset={reset}
           onToggleTask={handleToggleTask}
+          onSetConditionStatus={handleSetConditionStatus}
           onChangeLanguage={handleChangeLanguage}
           isReprocessing={isReprocessing}
           language={resultLanguage}

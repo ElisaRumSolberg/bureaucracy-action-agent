@@ -6,6 +6,8 @@
 // free-text language, or "match the document's language") falls back to
 // the English original rather than guessing.
 
+import type { ReasonItem } from "@/lib/taskGraph";
+
 type Translations = Record<string, string>;
 
 const EXACT: Record<string, Translations> = {
@@ -86,6 +88,13 @@ const EXACT: Record<string, Translations> = {
     Français: "Aucun risque immédiat détecté.",
     Español: "No se detectó riesgo inmediato.",
   },
+  "No prerequisites — ready to start": {
+    Türkçe: "Ön koşul yok — hemen başlanabilir",
+    Norsk: "Ingen forutsetninger — klar til å starte",
+    Deutsch: "Keine Voraussetzungen — kann sofort gestartet werden",
+    Français: "Aucun prérequis — prêt à démarrer",
+    Español: "Sin requisitos previos — listo para empezar",
+  },
 };
 
 const DAYS_LEFT: Record<string, (n: string) => string> = {
@@ -137,6 +146,37 @@ export function translateBlocksCount(count: number, language: string | undefined
   const translator = language ? BLOCKS_COUNT[language] : undefined;
   if (translator) return translator(count);
   return `blocks ${count} other task${count > 1 ? "s" : ""}`;
+}
+
+const HIGHEST_PRIORITY_AMONG: Record<string, (n: number) => string> = {
+  Türkçe: (n) => `${n} hazır görev arasında en yüksek öncelikli`,
+  Norsk: (n) => `høyest prioritet blant ${n} klare oppgaver`,
+  Deutsch: (n) => `höchste Priorität unter ${n} startbereiten Aufgaben`,
+  Français: (n) => `priorité la plus élevée parmi ${n} tâches prêtes`,
+  Español: (n) => `máxima prioridad entre ${n} tareas listas`,
+};
+
+export function translateHighestPriorityAmong(count: number, language: string | undefined): string {
+  const translator = language ? HIGHEST_PRIORITY_AMONG[language] : undefined;
+  if (translator) return translator(count);
+  return `highest priority among ${count} ready tasks`;
+}
+
+/** Render one structured reason from the next-action scorer into a
+ * localized, human-readable phrase. */
+export function renderReason(item: ReasonItem, language: string | undefined): string {
+  switch (item.kind) {
+    case "priority":
+      return translateReason(item.text, language);
+    case "blocks":
+      return translateBlocksCount(item.count, language);
+    case "highest_priority":
+      return translateHighestPriorityAmong(item.readyCount, language);
+    case "no_prerequisites":
+      return translateReason("No prerequisites — ready to start", language);
+    default:
+      return "";
+  }
 }
 
 const AND_WORD: Record<string, string> = {

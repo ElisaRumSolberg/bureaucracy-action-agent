@@ -1,5 +1,5 @@
 import { getNextBestAction } from "@/lib/taskGraph";
-import { localizedJoin, translateBlocksCount, translateReason } from "@/lib/reasonTranslations";
+import { renderReason } from "@/lib/reasonTranslations";
 import type { Task } from "@/lib/api";
 
 interface Props {
@@ -26,11 +26,7 @@ export default function NextBestAction({ tasks, language }: Props) {
     );
   }
 
-  const reasonParts = [translateReason(next.priorityReason, language)];
-  if (next.blocksCount > 0 && !next.mentionsBlockingAlready) {
-    reasonParts.push(translateBlocksCount(next.blocksCount, language));
-  }
-  const reason = localizedJoin(reasonParts, language);
+  const reasonTexts = next.reasons.map((item) => renderReason(item, language)).filter(Boolean);
 
   return (
     <div className="rounded-2xl border border-zinc-900 bg-zinc-900 p-5 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">
@@ -45,10 +41,17 @@ export default function NextBestAction({ tasks, language }: Props) {
           Condition: {next.task.condition}
         </p>
       )}
-      <p className="mt-2 text-sm text-zinc-300 dark:text-zinc-600">
-        <span className="font-medium text-zinc-100 dark:text-zinc-800">Why?</span>{" "}
-        {reason}.
+      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+        Why?
       </p>
+      <ul className="mt-1 space-y-1 text-sm text-zinc-300 dark:text-zinc-600">
+        {reasonTexts.map((text, idx) => (
+          <li key={idx} className="flex gap-2">
+            <span className="text-zinc-500 dark:text-zinc-400">•</span>
+            <span>{text}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
