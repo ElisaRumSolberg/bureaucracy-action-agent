@@ -225,6 +225,13 @@ class ConditionStatusUpdate(BaseModel):
     condition_status: str
 
 
+_CONDITION_STATUS_MESSAGES = {
+    "applies": 'Condition confirmed for "{title}" — it now applies',
+    "not_applicable": 'Condition marked not applicable for "{title}" — task excluded',
+    "unknown": 'Condition status reset for "{title}"',
+}
+
+
 @router.patch("/tasks/{task_id}/condition-status")
 def update_condition_status(task_id: str, body: ConditionStatusUpdate):
     if body.condition_status not in {"unknown", "applies", "not_applicable"}:
@@ -238,12 +245,57 @@ def update_condition_status(task_id: str, body: ConditionStatusUpdate):
     task_snap = task_ref.get()
     if not task_snap.exists:
         raise HTTPException(status_code=404, detail="Task not found.")
-    if not task_snap.to_dict().get("is_conditional"):
+    task_data = task_snap.to_dict()
+    if not task_data.get("is_conditional"):
         raise HTTPException(
             status_code=400, detail="This task is not conditional."
         )
 
+    document_id = task_data["documentId"]
+    target_index = int(task_id.rsplit("_", 1)[1])
+    title = task_data.get("title", "")
+
+    ordered_before = _ordered_tasks_for_document(db, document_id)
+    previous_best = get_next_best_action_index(ordered_before)
+
     task_ref.update({"condition_status": body.condition_status})
+
+    ordered_after = [dict(t) for t in ordered_before]
+    ordered_after[target_index]["condition_status"] = body.condition_status
+    new_best = get_next_best_action_index(ordered_after)
+
+    log_event(
+        db,
+        document_id,
+        "condition_status_changed",
+        _CONDITION_STATUS_MESSAGES[body.condition_status].format(title=title),
+    )
+    for i, t in enumerate(ordered_after):
+        if (
+            i != target_index
+            and target_index in t.get("dependencies", [])
+            and is_blocked(ordered_before, i)
+            and not is_blocked(ordered_after, i)
+        ):
+            log_event(db, document_id, "task_unblocked", f'Task unblocked: "{t.get("title", "")}"')
+
+    if new_best != previous_best:
+        if new_best is not None:
+            new_title = ordered_after[new_best].get("title", "")
+            log_event(
+                db,
+                document_id,
+                "recommendation_changed",
+                f'Recommendation changed to: "{new_title}"',
+            )
+        else:
+            log_event(
+                db,
+                document_id,
+                "recommendation_changed",
+                "No task is currently unblocked",
+            )
+
     return {"id": task_id, "condition_status": body.condition_status}
 
 

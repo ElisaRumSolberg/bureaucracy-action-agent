@@ -31,6 +31,7 @@ const EVENT_ICON: Record<string, string> = {
   task_completed: "✅",
   task_reopened: "↩️",
   task_unblocked: "🔓",
+  condition_status_changed: "❓",
   pipeline_failed: "⚠️",
 };
 
