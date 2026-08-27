@@ -60,7 +60,9 @@ def test_task_status_update_does_not_touch_source_excerpt(client, fake_db):
         [{"title": "Upload passport", "source_excerpt": "Original quote."}],
     )
 
-    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
+    client.patch(
+        "/documents/tasks/task_doc_a_0", json={"status": "done"}, headers={"X-Owner-Id": "owner-1"}
+    )
 
     response = client.get("/documents/doc_a", headers={"X-Owner-Id": "owner-1"})
     task = response.json()["tasks"][0]

@@ -14,6 +14,7 @@ Case: "Study in Norway"
 from tests.seed_helpers import seed_document
 
 OWNER = "study-in-norway-owner"
+OWNER_HEADER = {"X-Owner-Id": OWNER}
 
 
 def _seed_case(client, fake_db):
@@ -59,26 +60,28 @@ def test_initial_recommendation_is_a_valid_actionable_task(client, fake_db):
 def test_completing_dependencies_changes_the_recommendation_correctly(client, fake_db):
     case_id = _seed_case(client, fake_db)
 
-    client.patch("/documents/tasks/task_doc_norway_0", json={"status": "done"})  # pay fee
+    client.patch("/documents/tasks/task_doc_norway_0", json={"status": "done"}, headers=OWNER_HEADER)  # pay fee
     assert _nba_title(client, case_id) == "Register for courses"  # now unblocked, still high priority
 
-    client.patch("/documents/tasks/task_doc_norway_1", json={"status": "done"})  # register for courses
+    client.patch("/documents/tasks/task_doc_norway_1", json={"status": "done"}, headers=OWNER_HEADER)  # register
     assert _nba_title(client, case_id) == "Upload proof of funds"  # only unblocked unconditional task left
 
-    client.patch("/documents/tasks/task_doc_norway_2", json={"status": "done"})  # upload proof of funds
+    client.patch("/documents/tasks/task_doc_norway_2", json={"status": "done"}, headers=OWNER_HEADER)  # proof
     assert _nba_title(client, case_id) == "Submit residence application"  # now unblocked
 
 
 def test_police_condition_not_applicable_removes_it_from_the_workflow(client, fake_db):
     case_id = _seed_case(client, fake_db)
     for task_id in ["task_doc_norway_0", "task_doc_norway_1", "task_doc_norway_2", "task_doc_norway_3"]:
-        client.patch(f"/documents/tasks/{task_id}", json={"status": "done"})
+        client.patch(f"/documents/tasks/{task_id}", json={"status": "done"}, headers=OWNER_HEADER)
 
     detail = client.get(f"/cases/{case_id}", headers={"X-Owner-Id": OWNER}).json()
     assert detail["next_best_action"]["task"]["title"] == "Register with police"  # only fallback left
 
     client.patch(
-        "/documents/tasks/task_doc_norway_4/condition-status", json={"condition_status": "not_applicable"}
+        "/documents/tasks/task_doc_norway_4/condition-status",
+        json={"condition_status": "not_applicable"},
+        headers=OWNER_HEADER,
     )
 
     final = client.get(f"/cases/{case_id}", headers={"X-Owner-Id": OWNER}).json()
@@ -93,14 +96,18 @@ def test_police_condition_not_applicable_removes_it_from_the_workflow(client, fa
 def test_police_condition_applies_makes_it_actionable(client, fake_db):
     case_id = _seed_case(client, fake_db)
     for task_id in ["task_doc_norway_0", "task_doc_norway_1", "task_doc_norway_2", "task_doc_norway_3"]:
-        client.patch(f"/documents/tasks/{task_id}", json={"status": "done"})
+        client.patch(f"/documents/tasks/{task_id}", json={"status": "done"}, headers=OWNER_HEADER)
 
-    client.patch("/documents/tasks/task_doc_norway_4/condition-status", json={"condition_status": "applies"})
+    client.patch(
+        "/documents/tasks/task_doc_norway_4/condition-status",
+        json={"condition_status": "applies"},
+        headers=OWNER_HEADER,
+    )
 
     detail = client.get(f"/cases/{case_id}", headers={"X-Owner-Id": OWNER}).json()
     assert detail["next_best_action"]["task"]["title"] == "Register with police"
 
-    client.patch("/documents/tasks/task_doc_norway_4", json={"status": "done"})
+    client.patch("/documents/tasks/task_doc_norway_4", json={"status": "done"}, headers=OWNER_HEADER)
     final = client.get(f"/cases/{case_id}", headers={"X-Owner-Id": OWNER}).json()
     assert final["next_best_action"] is None
     assert all(t["status"] == "done" for doc in final["documents"] for t in doc["tasks"])

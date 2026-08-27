@@ -69,8 +69,9 @@ def test_case_with_all_applicable_tasks_completed_reaches_completed_state(client
         client.get(f"/cases/{case_id}", headers={"X-Owner-Id": "owner-1"}).json()
     )
 
-    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
-    client.patch("/documents/tasks/task_doc_a_1", json={"status": "done"})
+    owner_header = {"X-Owner-Id": "owner-1"}
+    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"}, headers=owner_header)
+    client.patch("/documents/tasks/task_doc_a_1", json={"status": "done"}, headers=owner_header)
 
     final = client.get(f"/cases/{case_id}", headers={"X-Owner-Id": "owner-1"}).json()
     assert _is_case_complete(final)

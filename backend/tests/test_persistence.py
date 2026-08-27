@@ -31,7 +31,9 @@ def test_document_attachment_to_case_persists(client, fake_db):
 def test_task_status_update_persists(client, fake_db):
     seed_document(fake_db, "doc_a", "owner-1", [{"title": "T", "status": "todo"}])
 
-    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
+    client.patch(
+        "/documents/tasks/task_doc_a_0", json={"status": "done"}, headers={"X-Owner-Id": "owner-1"}
+    )
 
     stored = fake_db.collection("tasks").document("task_doc_a_0").get().to_dict()
     assert stored["status"] == "done"
@@ -39,11 +41,12 @@ def test_task_status_update_persists(client, fake_db):
 
 def test_event_persistence_appends_without_overwriting_previous_events(client, fake_db):
     seed_document(fake_db, "doc_a", "owner-1", [{"title": "T"}])
+    owner_header = {"X-Owner-Id": "owner-1"}
 
-    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
-    client.patch("/documents/tasks/task_doc_a_0", json={"status": "todo"})
+    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"}, headers=owner_header)
+    client.patch("/documents/tasks/task_doc_a_0", json={"status": "todo"}, headers=owner_header)
 
-    events = client.get("/documents/doc_a/events").json()["events"]
+    events = client.get("/documents/doc_a/events", headers=owner_header).json()["events"]
     event_types = [e["type"] for e in events]
     assert "task_completed" in event_types
     assert "task_reopened" in event_types
@@ -87,9 +90,10 @@ def test_repeating_the_same_task_completion_is_idempotent(client, fake_db):
     task in the same (already-correct) state — the route doesn't special-case
     a no-op transition, it just re-applies the same update safely."""
     seed_document(fake_db, "doc_a", "owner-1", [{"title": "T", "status": "todo"}])
+    owner_header = {"X-Owner-Id": "owner-1"}
 
-    first = client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
-    second = client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
+    first = client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"}, headers=owner_header)
+    second = client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"}, headers=owner_header)
 
     assert first.status_code == 200
     assert second.status_code == 200

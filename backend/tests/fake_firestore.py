@@ -16,9 +16,14 @@ import uuid
 
 
 class FakeDocumentSnapshot:
-    def __init__(self, doc_id: str, data: dict | None):
+    def __init__(self, doc_id: str, data: dict | None, reference: "FakeDocumentRef | None" = None):
         self.id = doc_id
         self._data = data
+        # Mirrors real google.cloud.firestore.DocumentSnapshot.reference —
+        # production code (delete_document, save_tasks) calls
+        # `snap.reference.delete()` on results from a query .stream(), so the
+        # fake must support it too, not just direct .document(id).get().
+        self.reference = reference
 
     @property
     def exists(self) -> bool:
@@ -44,7 +49,7 @@ class FakeDocumentRef:
         self._store().setdefault(self.id, {}).update(data)
 
     def get(self) -> FakeDocumentSnapshot:
-        return FakeDocumentSnapshot(self.id, self._store().get(self.id))
+        return FakeDocumentSnapshot(self.id, self._store().get(self.id), reference=self)
 
     def delete(self) -> None:
         self._store().pop(self.id, None)
@@ -89,9 +94,14 @@ class FakeQuery:
     def order_by(self, field: str) -> "FakeQuery":
         return FakeQuery(self._client, self._name, self._parent, self._predicate, field)
 
+    def _ref_for(self, doc_id: str) -> "FakeDocumentRef":
+        if self._parent:
+            return _FakeSubDocumentRef(self._client, self._name, self._parent, doc_id)
+        return FakeDocumentRef(self._client, self._name, doc_id)
+
     def stream(self):
         items = [
-            FakeDocumentSnapshot(doc_id, data)
+            FakeDocumentSnapshot(doc_id, data, reference=self._ref_for(doc_id))
             for doc_id, data in self._store().items()
             if self._predicate(doc_id, data)
         ]

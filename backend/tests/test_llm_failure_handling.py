@@ -84,7 +84,9 @@ def test_pipeline_failure_logs_a_pipeline_failed_event(client, fake_db, monkeypa
     )
 
     document_id = next(iter(fake_db._collections["documents"]))
-    events = client.get(f"/documents/{document_id}/events").json()["events"]
+    events = client.get(
+        f"/documents/{document_id}/events", headers={"X-Owner-Id": "owner-1"}
+    ).json()["events"]
     event_types = [e["type"] for e in events]
     assert "pipeline_failed" in event_types
     # No downstream events (extraction/validation/recommendation) should

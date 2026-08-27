@@ -173,7 +173,11 @@ class TaskStatusUpdate(BaseModel):
 
 
 @router.patch("/tasks/{task_id}")
-def update_task_status(task_id: str, body: TaskStatusUpdate):
+def update_task_status(
+    task_id: str,
+    body: TaskStatusUpdate,
+    owner_id: str | None = Depends(resolve_owner_id),
+):
     if body.status not in {"todo", "done"}:
         raise HTTPException(status_code=400, detail="status must be 'todo' or 'done'.")
 
@@ -184,6 +188,7 @@ def update_task_status(task_id: str, body: TaskStatusUpdate):
         raise HTTPException(status_code=404, detail="Task not found.")
     task_data = task_snap.to_dict()
     document_id = task_data["documentId"]
+    _get_owned_document(db, document_id, owner_id)
     target_index = int(task_id.rsplit("_", 1)[1])
 
     ordered_before = _ordered_tasks_for_document(db, document_id)
@@ -241,7 +246,11 @@ _CONDITION_STATUS_MESSAGES = {
 
 
 @router.patch("/tasks/{task_id}/condition-status")
-def update_condition_status(task_id: str, body: ConditionStatusUpdate):
+def update_condition_status(
+    task_id: str,
+    body: ConditionStatusUpdate,
+    owner_id: str | None = Depends(resolve_owner_id),
+):
     if body.condition_status not in {"unknown", "applies", "not_applicable"}:
         raise HTTPException(
             status_code=400,
@@ -254,12 +263,13 @@ def update_condition_status(task_id: str, body: ConditionStatusUpdate):
     if not task_snap.exists:
         raise HTTPException(status_code=404, detail="Task not found.")
     task_data = task_snap.to_dict()
+    document_id = task_data["documentId"]
+    _get_owned_document(db, document_id, owner_id)
     if not task_data.get("is_conditional"):
         raise HTTPException(
             status_code=400, detail="This task is not conditional."
         )
 
-    document_id = task_data["documentId"]
     target_index = int(task_id.rsplit("_", 1)[1])
     title = task_data.get("title", "")
 
@@ -308,18 +318,19 @@ def update_condition_status(task_id: str, body: ConditionStatusUpdate):
 
 
 @router.post("/tasks/{task_id}/guidance")
-async def get_task_guidance(task_id: str):
+async def get_task_guidance(task_id: str, owner_id: str | None = Depends(resolve_owner_id)):
     db = get_firestore_client()
     task_snap = db.collection("tasks").document(task_id).get()
     if not task_snap.exists:
         raise HTTPException(status_code=404, detail="Task not found.")
     task_data = task_snap.to_dict()
+    document_id = task_data["documentId"]
+    _get_owned_document(db, document_id, owner_id)
 
     cached = db.collection("task_guidance").document(task_id).get()
     if cached.exists:
         return cached.to_dict()
 
-    document_id = task_data["documentId"]
     doc_snap = db.collection("documents").document(document_id).get()
     document_summary = doc_snap.to_dict().get("summary", "") if doc_snap.exists else ""
 
@@ -355,7 +366,11 @@ class TaskQuestion(BaseModel):
 
 
 @router.post("/tasks/{task_id}/ask")
-async def ask_task_question(task_id: str, body: TaskQuestion):
+async def ask_task_question(
+    task_id: str,
+    body: TaskQuestion,
+    owner_id: str | None = Depends(resolve_owner_id),
+):
     if not body.question.strip():
         raise HTTPException(status_code=400, detail="question must not be empty.")
 
@@ -364,8 +379,8 @@ async def ask_task_question(task_id: str, body: TaskQuestion):
     if not task_snap.exists:
         raise HTTPException(status_code=404, detail="Task not found.")
     task_data = task_snap.to_dict()
-
     document_id = task_data["documentId"]
+    _get_owned_document(db, document_id, owner_id)
     doc_snap = db.collection("documents").document(document_id).get()
     doc_data = doc_snap.to_dict() if doc_snap.exists else {}
 
@@ -404,13 +419,14 @@ async def ask_task_question(task_id: str, body: TaskQuestion):
 
 
 @router.post("/tasks/{task_id}/delay-impact")
-async def get_delay_impact(task_id: str):
+async def get_delay_impact(task_id: str, owner_id: str | None = Depends(resolve_owner_id)):
     db = get_firestore_client()
     task_snap = db.collection("tasks").document(task_id).get()
     if not task_snap.exists:
         raise HTTPException(status_code=404, detail="Task not found.")
     task_data = task_snap.to_dict()
     document_id = task_data["documentId"]
+    _get_owned_document(db, document_id, owner_id)
 
     doc_snap = db.collection("documents").document(document_id).get()
     doc_data = doc_snap.to_dict() if doc_snap.exists else {}
@@ -444,11 +460,9 @@ async def get_delay_impact(task_id: str):
 
 
 @router.get("/{document_id}/events")
-def get_agent_events(document_id: str):
+def get_agent_events(document_id: str, owner_id: str | None = Depends(resolve_owner_id)):
     db = get_firestore_client()
-    doc_snap = db.collection("documents").document(document_id).get()
-    if not doc_snap.exists:
-        raise HTTPException(status_code=404, detail="Document not found.")
+    _get_owned_document(db, document_id, owner_id)
 
     return {"events": list_events(db, document_id)}
 

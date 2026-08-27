@@ -76,7 +76,9 @@ def test_get_case_owned_by_someone_else_returns_404(client, fake_db):
 
 def test_task_completion_success(client, fake_db):
     seed_document(fake_db, "doc_a", "owner-1", [{"title": "T", "status": "todo"}])
-    response = client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
+    response = client.patch(
+        "/documents/tasks/task_doc_a_0", json={"status": "done"}, headers={"X-Owner-Id": "owner-1"}
+    )
     assert response.status_code == 200
     assert response.json() == {"id": "task_doc_a_0", "status": "done"}
 
@@ -105,7 +107,11 @@ def test_condition_update_success(client, fake_db):
     seed_document(
         fake_db, "doc_a", "owner-1", [{"title": "T", "is_conditional": True, "condition_status": "unknown"}]
     )
-    response = client.patch("/documents/tasks/task_doc_a_0/condition-status", json={"condition_status": "applies"})
+    response = client.patch(
+        "/documents/tasks/task_doc_a_0/condition-status",
+        json={"condition_status": "applies"},
+        headers={"X-Owner-Id": "owner-1"},
+    )
     assert response.status_code == 200
     assert response.json()["condition_status"] == "applies"
 
@@ -119,7 +125,11 @@ def test_condition_update_invalid_task_id_returns_404(client, fake_db):
 
 def test_condition_update_on_non_conditional_task_returns_400(client, fake_db):
     seed_document(fake_db, "doc_a", "owner-1", [{"title": "T", "is_conditional": False}])
-    response = client.patch("/documents/tasks/task_doc_a_0/condition-status", json={"condition_status": "applies"})
+    response = client.patch(
+        "/documents/tasks/task_doc_a_0/condition-status",
+        json={"condition_status": "applies"},
+        headers={"X-Owner-Id": "owner-1"},
+    )
     assert response.status_code == 400
 
 
@@ -189,9 +199,11 @@ def test_activity_log_for_nonexistent_document_returns_404(client, fake_db):
 
 def test_activity_log_returns_events_in_chronological_order(client, fake_db):
     seed_document(fake_db, "doc_a", "owner-1", [{"title": "T", "status": "todo"}])
-    client.patch("/documents/tasks/task_doc_a_0", json={"status": "done"})
+    client.patch(
+        "/documents/tasks/task_doc_a_0", json={"status": "done"}, headers={"X-Owner-Id": "owner-1"}
+    )
 
-    response = client.get("/documents/doc_a/events")
+    response = client.get("/documents/doc_a/events", headers={"X-Owner-Id": "owner-1"})
     events = response.json()["events"]
     assert len(events) >= 1
     assert events == sorted(events, key=lambda e: e["created_at"])

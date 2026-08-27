@@ -96,7 +96,7 @@ def test_upload_complete_unblock_recommend_reactivity_loop(monkeypatch):
     document_id = body["document_id"]
     assert [t["title"] for t in body["tasks"]] == ["Task A", "Task B", "Task C"]
 
-    events = client.get(f"/documents/{document_id}/events").json()["events"]
+    events = client.get(f"/documents/{document_id}/events", headers=headers).json()["events"]
     assert _event_types(events) == [
         "document_uploaded",
         "extraction_complete",
@@ -107,10 +107,10 @@ def test_upload_complete_unblock_recommend_reactivity_loop(monkeypatch):
 
     # 2. Complete Task A -> Task B unblocks -> recommendation moves to B.
     task_a_id = f"task_{document_id}_0"
-    complete_a = client.patch(f"/documents/tasks/{task_a_id}", json={"status": "done"})
+    complete_a = client.patch(f"/documents/tasks/{task_a_id}", json={"status": "done"}, headers=headers)
     assert complete_a.status_code == 200
 
-    events = client.get(f"/documents/{document_id}/events").json()["events"]
+    events = client.get(f"/documents/{document_id}/events", headers=headers).json()["events"]
     assert _event_types(events)[-3:] == ["task_completed", "task_unblocked", "recommendation_changed"]
     assert "Task A" in events[-3]["message"]
     assert "Task B" in events[-2]["message"]
@@ -122,20 +122,20 @@ def test_upload_complete_unblock_recommend_reactivity_loop(monkeypatch):
 
     # 3. Complete Task B -> Task C unblocks -> recommendation moves to C.
     task_b_id = f"task_{document_id}_1"
-    complete_b = client.patch(f"/documents/tasks/{task_b_id}", json={"status": "done"})
+    complete_b = client.patch(f"/documents/tasks/{task_b_id}", json={"status": "done"}, headers=headers)
     assert complete_b.status_code == 200
 
-    events = client.get(f"/documents/{document_id}/events").json()["events"]
+    events = client.get(f"/documents/{document_id}/events", headers=headers).json()["events"]
     assert _event_types(events)[-3:] == ["task_completed", "task_unblocked", "recommendation_changed"]
     assert "Task C" in events[-2]["message"]
     assert "Task C" in events[-1]["message"]
 
     # 4. Complete Task C -> nothing left unblocked -> recommendation clears.
     task_c_id = f"task_{document_id}_2"
-    complete_c = client.patch(f"/documents/tasks/{task_c_id}", json={"status": "done"})
+    complete_c = client.patch(f"/documents/tasks/{task_c_id}", json={"status": "done"}, headers=headers)
     assert complete_c.status_code == 200
 
-    events = client.get(f"/documents/{document_id}/events").json()["events"]
+    events = client.get(f"/documents/{document_id}/events", headers=headers).json()["events"]
     assert _event_types(events)[-2:] == ["task_completed", "recommendation_changed"]
     assert events[-1]["message"] == "No task is currently unblocked"
 
