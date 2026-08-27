@@ -46,7 +46,9 @@ export default function GuidanceView({ tasks, language, focusTaskId }: Props) {
             }`}
           >
             <p className="text-xs text-zinc-400">{tTaskLabel(index + 1, language)}</p>
-            <h3 className="mt-0.5 font-semibold text-zinc-900 dark:text-zinc-50">{task.title}</h3>
+            <h3 className="mt-0.5 break-words font-semibold text-zinc-900 dark:text-zinc-50">
+              {task.title}
+            </h3>
             <TaskGuidancePanel taskId={task.id} language={language} initialOpen={isFocused} />
           </div>
         );

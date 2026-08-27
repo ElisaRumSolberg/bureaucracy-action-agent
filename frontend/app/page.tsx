@@ -156,7 +156,7 @@ export default function Home() {
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-6 py-4">
           <Logo className="h-7 w-7 shrink-0" />
-          <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <span className="hidden text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:inline">
             Bureaucracy Action Agent
           </span>
           {stage !== "welcome" && (

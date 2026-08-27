@@ -60,7 +60,7 @@ export default function Dashboard({
       className={`mx-auto w-full max-w-6xl flex-1 px-6 py-10 transition-opacity ${isReprocessing ? "pointer-events-none opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-medium text-zinc-400">{t("Action plan", language)}</p>
           <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             {t("Document Summary", language)}
@@ -117,7 +117,7 @@ export default function Dashboard({
       </div>
 
       <div className="mt-8 flex flex-col gap-6 sm:flex-row">
-        <nav className="flex shrink-0 gap-1 overflow-x-auto sm:w-44 sm:flex-col sm:overflow-visible">
+        <nav className="flex w-full min-w-0 shrink-0 gap-1 overflow-x-auto sm:w-44 sm:flex-col sm:overflow-visible">
           {NAV_ITEMS.map((item) => (
             <button
               key={item.view}

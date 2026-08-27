@@ -41,7 +41,9 @@ export default function UpcomingDeadlines({ tasks, language, limit = 5 }: Props)
             const isUrgent = label === "Overdue" || label === "Due today" || label === "Due in 1 day";
             return (
               <li key={task.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="truncate text-zinc-700 dark:text-zinc-300">{task.title}</span>
+                <span className="min-w-0 flex-1 truncate text-zinc-700 dark:text-zinc-300">
+                  {task.title}
+                </span>
                 <span
                   className={`shrink-0 text-xs font-medium ${
                     isUrgent

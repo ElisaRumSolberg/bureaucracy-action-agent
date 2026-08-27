@@ -32,7 +32,7 @@ function NodeChip({
       }`}
     >
       <span className="shrink-0">{done ? "✓" : "○"}</span>
-      <span className={wide ? "" : "truncate"} title={task.title}>
+      <span className="min-w-0 flex-1 truncate" title={task.title}>
         {task.title}
       </span>
     </div>
@@ -83,7 +83,7 @@ function AllTasksView({ tasks, highlightIndex }: Props) {
                   }`}
                 >
                   <span className="shrink-0">{done ? "✓" : blocked ? "🔒" : "○"}</span>
-                  <span className="truncate" title={task.title}>
+                  <span className="min-w-0 flex-1 truncate" title={task.title}>
                     {task.title}
                   </span>
                 </div>

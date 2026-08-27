@@ -119,7 +119,7 @@ export default function NextBestAction({ tasks, language, onStartAction }: Props
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand dark:bg-indigo-400" />
         {next.isConditionalPick ? t("If this applies to you", language) : t("Recommended next action", language)}
       </p>
-      <h3 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+      <h3 className="mt-1 break-words text-xl font-semibold text-zinc-900 dark:text-zinc-50">
         {tTaskLabel(next.index + 1, language)}: {next.task.title}
       </h3>
       {next.isConditionalPick && next.task.condition && (
