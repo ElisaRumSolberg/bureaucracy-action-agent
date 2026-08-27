@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from docx import Document as DocxDocument
 from pptx import Presentation
-from pypdf import PdfReader
+from pypdf import PasswordType, PdfReader
 from pypdf.errors import PdfReadError
 
 IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -36,9 +36,29 @@ class ExtractedContent:
 def _extract_pdf_text(file_bytes: bytes) -> str:
     try:
         reader = PdfReader(io.BytesIO(file_bytes))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
     except PdfReadError as exc:
-        raise DocumentReadError("We could not read this document.") from exc
+        raise DocumentReadError(
+            "This PDF appears to be corrupted and could not be opened."
+        ) from exc
+
+    if reader.is_encrypted and reader.decrypt("") == PasswordType.NOT_DECRYPTED:
+        raise DocumentReadError(
+            "This PDF is password-protected. Please remove the password and try again."
+        )
+
+    try:
+        text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    except PdfReadError as exc:
+        raise DocumentReadError(
+            "This PDF appears to be corrupted and could not be opened."
+        ) from exc
+
+    if not text.strip():
+        raise DocumentReadError(
+            "This PDF appears to be scanned or image-only, with no selectable text. "
+            "Try uploading a photo of the page instead so it can be read directly."
+        )
+    return text
 
 
 def _extract_docx_text(file_bytes: bytes) -> str:
@@ -46,7 +66,9 @@ def _extract_docx_text(file_bytes: bytes) -> str:
         doc = DocxDocument(io.BytesIO(file_bytes))
         return "\n".join(p.text for p in doc.paragraphs)
     except Exception as exc:  # noqa: BLE001
-        raise DocumentReadError("We could not read this document.") from exc
+        raise DocumentReadError(
+            "This Word document appears to be corrupted or in an unsupported format."
+        ) from exc
 
 
 def _extract_pptx_text(file_bytes: bytes) -> str:
@@ -59,7 +81,9 @@ def _extract_pptx_text(file_bytes: bytes) -> str:
                     lines.append(shape.text_frame.text)
         return "\n".join(lines)
     except Exception as exc:  # noqa: BLE001
-        raise DocumentReadError("We could not read this document.") from exc
+        raise DocumentReadError(
+            "This PowerPoint file appears to be corrupted or in an unsupported format."
+        ) from exc
 
 
 def _extract_txt_text(file_bytes: bytes) -> str:

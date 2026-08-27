@@ -59,7 +59,7 @@ async def upload_document(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     if not content.is_image and not (content.text or "").strip():
-        raise HTTPException(status_code=422, detail="We could not read this document.")
+        raise HTTPException(status_code=422, detail="This document appears to be empty.")
 
     document_id = f"doc_{uuid.uuid4().hex[:8]}"
     db = get_firestore_client()
