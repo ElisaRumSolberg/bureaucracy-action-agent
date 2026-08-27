@@ -42,6 +42,20 @@ const STRINGS: Record<string, Record<UILanguage, string>> = {
     Français: "Continuer sans se connecter",
     Español: "Continuar sin iniciar sesión",
   },
+  "Continue as guest instead": {
+    Türkçe: "Bunun yerine misafir olarak devam et",
+    Norsk: "Fortsett som gjest i stedet",
+    Deutsch: "Stattdessen als Gast fortfahren",
+    Français: "Continuer en tant qu'invité à la place",
+    Español: "Continuar como invitado en su lugar",
+  },
+  "Not you? Switch account": {
+    Türkçe: "Siz değil misiniz? Hesap değiştir",
+    Norsk: "Ikke deg? Bytt konto",
+    Deutsch: "Nicht Sie? Konto wechseln",
+    Français: "Ce n'est pas vous ? Changer de compte",
+    Español: "¿No eres tú? Cambiar de cuenta",
+  },
   "Signed in as": {
     Türkçe: "Giriş yapıldı:",
     Norsk: "Logget inn som",
