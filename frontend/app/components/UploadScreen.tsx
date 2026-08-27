@@ -9,15 +9,22 @@ interface Props {
 }
 
 const FLOW_STEPS = ["Upload", "Extract actions", "Detect deadlines", "Build workflow"];
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB, matches the backend's limit
 
 export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState<string | undefined>(undefined);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   function handleFiles(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      setSizeError("This file is too large. Please upload a file under 20 MB.");
+      return;
+    }
+    setSizeError(null);
     onFileSelected(file, targetLanguage);
   }
 
@@ -101,9 +108,9 @@ export default function UploadScreen({ onFileSelected, errorMessage }: Props) {
         ))}
       </div>
 
-      {errorMessage && (
+      {(sizeError || errorMessage) && (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          {errorMessage}
+          {sizeError || errorMessage}
         </p>
       )}
 

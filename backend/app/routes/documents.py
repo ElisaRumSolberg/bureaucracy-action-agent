@@ -24,6 +24,8 @@ from app.models.schemas import TaskGuidance, ValidatedTask
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+
 
 def _ordered_tasks_for_document(db, document_id: str) -> list[dict]:
     """All sibling tasks for a document, as plain dicts ordered by their
@@ -53,6 +55,12 @@ async def upload_document(
         )
 
     file_bytes = await file.read()
+    if len(file_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="This file is too large. Please upload a file under 20 MB.",
+        )
+
     try:
         content = extract_document_content(file_bytes, file.content_type)
     except DocumentReadError as exc:
