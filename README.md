@@ -145,9 +145,27 @@ flowchart LR
   actually did (extraction, validation, recommendation changes, unblocked
   tasks), backed by Firestore events, not just a static result screen.
 - **Multi-format input** — PDF, Word, PowerPoint, plain text, and images
-  (JPEG/PNG/WEBP, sent to Gemini multimodally).
+  (JPEG/PNG/WEBP, sent to Gemini multimodally). A 20 MB size limit is
+  enforced on both the client and the server, and password-protected,
+  corrupted, or scanned/image-only PDFs each get a specific, actionable
+  error message instead of one generic failure.
 - **Multilingual output** — pick an output language independent of the
-  document's own language, changeable after the fact without re-uploading.
+  document's own language, changeable after the fact without re-uploading
+  (`POST /documents/{id}/translate` translates the immutable original
+  extraction in place, so switching languages back and forth never
+  compounds translation drift).
+- **Cases** — group related documents (e.g. a visa application spanning a
+  bank statement, an acceptance letter, and a form) under one umbrella to
+  see all their tasks in one place with a single shared Next Best Action.
+  Deliberately simple: each document's dependency graph stays independent
+  (no cross-document dependency inference), and the case-level
+  recommendation is just the best candidate across each document's own
+  unchanged recommendation logic.
+- **Optional Google Sign-In** — Firebase Authentication with a verified ID
+  token (checked server-side against Google's public keys, never trusted
+  from the client) lets a document history follow a user across devices;
+  using the app without signing in still works exactly as before, scoped
+  to an anonymous per-browser ID.
 
 ## Agent Tools
 
@@ -175,28 +193,44 @@ code first, never left to the model to invent.
 - Gemini 3 Flash (`gemini-3-flash-preview`) via Vertex AI — served from the
   `global` location, not the regional endpoint the rest of this project
   uses.
-- Firestore (task/document/event storage)
+- Firestore (task/document/event/case storage)
 - Cloud Run (deployment, both frontend and backend)
+- Firebase Authentication (optional Google Sign-In, verified server-side)
 
 ## API Overview
 
-All routes are under `/documents` (`backend/app/routes/documents.py`):
+Document/task routes are under `/documents`
+(`backend/app/routes/documents.py`); case routes are under `/cases`
+(`backend/app/routes/cases.py`). Every route resolves the caller's identity
+via `resolve_owner_id` (`backend/app/auth.py`) — a verified Firebase ID
+token if signed in, otherwise the anonymous `X-Owner-Id` header.
 
-| Method | Path                                | Purpose                                  |
-| ------ | ------------------------------------ | ----------------------------------------- |
-| POST   | `/upload`                            | Upload a document, run the agent pipeline |
-| PATCH  | `/tasks/{task_id}`                   | Mark a task todo/done                     |
-| PATCH  | `/tasks/{task_id}/condition-status`  | Confirm/deny a conditional task           |
-| POST   | `/tasks/{task_id}/guidance`          | "How to complete this?" (cached)          |
-| POST   | `/tasks/{task_id}/ask`               | Task-scoped Q&A                           |
-| POST   | `/tasks/{task_id}/delay-impact`      | "What if I delay this?"                   |
-| GET    | `/{document_id}/events`              | Agent activity log                        |
+| Method | Path                                 | Purpose                                    |
+| ------ | ------------------------------------ | ------------------------------------------- |
+| POST   | `/documents/upload`                  | Upload a document, run the agent pipeline   |
+| GET    | `/documents`                         | List the caller's documents                 |
+| GET    | `/documents/{document_id}`           | Get one document + its tasks                |
+| DELETE | `/documents/{document_id}`           | Delete a document and its tasks/events       |
+| PATCH  | `/documents/{document_id}/case`      | Assign/unassign a document to a case         |
+| POST   | `/documents/{document_id}/translate` | Translate in place (or restore the original) |
+| PATCH  | `/documents/tasks/{task_id}`         | Mark a task todo/done                       |
+| PATCH  | `/documents/tasks/{task_id}/condition-status` | Confirm/deny a conditional task     |
+| POST   | `/documents/tasks/{task_id}/guidance`| "How to complete this?" (cached)            |
+| POST   | `/documents/tasks/{task_id}/ask`     | Task-scoped Q&A                             |
+| POST   | `/documents/tasks/{task_id}/delay-impact` | "What if I delay this?"               |
+| GET    | `/documents/{document_id}/events`    | Agent activity log                          |
+| POST   | `/cases`                             | Create a case                               |
+| GET    | `/cases`                             | List the caller's cases                     |
+| GET    | `/cases/{case_id}`                  | Case detail: documents + unified NBA        |
+| DELETE | `/cases/{case_id}`                  | Delete a case (unlinks, doesn't delete, its documents) |
 
 ## Firestore Data Model
 
 See `backend/app/models/schemas.py` for the task/document shape. Task IDs
 are deterministic (`task_{document_id}_{index}`); events live in a
-`documents/{document_id}/events` subcollection.
+`documents/{document_id}/events` subcollection. A `cases` collection holds
+`{name, owner_id, created_at}`; a document optionally carries a `case_id`
+pointing at one.
 
 ## Local Setup
 
@@ -282,6 +316,8 @@ gcloud run services update bureaucracy-agent-api \
   pipeline would need).
 - Testing has focused on English, Turkish, and Norwegian documents; other
   languages should work but are less exercised.
+- Cases group documents but don't infer dependencies *between* them — a
+  deliberate scope decision (see Future Improvements), not a bug.
 
 ## Safety
 
@@ -295,6 +331,8 @@ what the source document actually states.
 
 ## Future Improvements
 
-Google Calendar/Gmail integration, reminder notifications, true async
-background processing with live progress streaming, OCR for scanned
-documents, mobile app.
+Cross-document dependency inference within a Case (e.g. "finish the bank
+statement task before the visa form task in another document"), Google
+Calendar/Gmail integration, reminder notifications, true async background
+processing with live progress streaming, OCR for scanned documents, mobile
+app.
