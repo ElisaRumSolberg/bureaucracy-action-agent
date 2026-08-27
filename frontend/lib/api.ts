@@ -1,3 +1,5 @@
+import { auth } from "@/lib/firebase";
+
 export type Priority = "high" | "medium" | "low";
 export type ConditionStatus = "unknown" | "applies" | "not_applicable";
 
@@ -48,8 +50,17 @@ function getOwnerId(): string {
   return id;
 }
 
-function ownerHeaders(extra?: Record<string, string>): Record<string, string> {
-  return { "X-Owner-Id": getOwnerId(), ...extra };
+/** Anonymous X-Owner-Id header, plus a verified Firebase Authorization
+ * bearer token when someone is signed in. The backend prefers the verified
+ * token over the header when both are present, so signed-in identity can't
+ * be spoofed — the header stays only as the anonymous fallback. */
+async function ownerHeaders(extra?: Record<string, string>): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { "X-Owner-Id": getOwnerId(), ...extra };
+  const user = auth.currentUser;
+  if (user) {
+    headers["Authorization"] = `Bearer ${await user.getIdToken()}`;
+  }
+  return headers;
 }
 
 export interface DocumentSummary {
@@ -61,7 +72,7 @@ export interface DocumentSummary {
 }
 
 export async function listDocuments(): Promise<DocumentSummary[]> {
-  const response = await fetch(`${API_URL}/documents`, { headers: ownerHeaders() });
+  const response = await fetch(`${API_URL}/documents`, { headers: await ownerHeaders() });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -73,7 +84,7 @@ export async function listDocuments(): Promise<DocumentSummary[]> {
 }
 
 export async function getDocument(documentId: string): Promise<UploadResult> {
-  const response = await fetch(`${API_URL}/documents/${documentId}`, { headers: ownerHeaders() });
+  const response = await fetch(`${API_URL}/documents/${documentId}`, { headers: await ownerHeaders() });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -89,7 +100,7 @@ export async function translateDocument(
 ): Promise<UploadResult> {
   const response = await fetch(`${API_URL}/documents/${documentId}/translate`, {
     method: "POST",
-    headers: ownerHeaders({ "Content-Type": "application/json" }),
+    headers: await ownerHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ target_language: targetLanguage || null }),
   });
 
@@ -104,7 +115,7 @@ export async function translateDocument(
 export async function deleteDocument(documentId: string): Promise<void> {
   const response = await fetch(`${API_URL}/documents/${documentId}`, {
     method: "DELETE",
-    headers: ownerHeaders(),
+    headers: await ownerHeaders(),
   });
 
   if (!response.ok) {
@@ -125,7 +136,7 @@ export async function uploadDocument(
 
   const response = await fetch(`${API_URL}/documents/upload`, {
     method: "POST",
-    headers: ownerHeaders(),
+    headers: await ownerHeaders(),
     body: formData,
   });
 

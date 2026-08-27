@@ -7,6 +7,20 @@
 export type UILanguage = "Türkçe" | "Norsk" | "Deutsch" | "Français" | "Español";
 
 const STRINGS: Record<string, Record<UILanguage, string>> = {
+  "Sign in with Google": {
+    Türkçe: "Google ile giriş yap",
+    Norsk: "Logg inn med Google",
+    Deutsch: "Mit Google anmelden",
+    Français: "Se connecter avec Google",
+    Español: "Iniciar sesión con Google",
+  },
+  "Sign out": {
+    Türkçe: "Çıkış yap",
+    Norsk: "Logg ut",
+    Deutsch: "Abmelden",
+    Français: "Se déconnecter",
+    Español: "Cerrar sesión",
+  },
   "Action plan": {
     Türkçe: "Eylem planı",
     Norsk: "Handlingsplan",

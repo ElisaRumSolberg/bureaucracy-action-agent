@@ -3,6 +3,7 @@
 import { useState } from "react";
 import UploadScreen from "./components/UploadScreen";
 import Logo from "./components/Logo";
+import AuthButton from "./components/AuthButton";
 import ProcessingScreen from "./components/ProcessingScreen";
 import Dashboard from "./components/Dashboard";
 import HistoryScreen from "./components/HistoryScreen";
@@ -146,14 +147,17 @@ export default function Home() {
           <span className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             Bureaucracy Action Agent
           </span>
-          {stage !== "results" && (
-            <button
-              onClick={() => setStage("history")}
-              className="ml-auto text-sm font-medium text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
-            >
-              History
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-3">
+            {stage !== "results" && (
+              <button
+                onClick={() => setStage("history")}
+                className="text-sm font-medium text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
+              >
+                History
+              </button>
+            )}
+            <AuthButton language={resultLanguage} />
+          </div>
         </div>
       </header>
 

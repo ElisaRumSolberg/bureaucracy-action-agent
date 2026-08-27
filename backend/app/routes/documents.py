@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Form, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from app.agent.activity_log import list_events, log_event
@@ -17,6 +17,7 @@ from app.agent.guidance import generate_task_guidance
 from app.agent.next_best_action import get_next_best_action_index, is_blocked
 from app.agent.task_qa import answer_task_question
 from app.agent.translate import translate_document_content
+from app.auth import resolve_owner_id
 from app.firestore_client import get_firestore_client
 from app.models.schemas import TaskGuidance, ValidatedTask
 
@@ -42,7 +43,7 @@ def _ordered_tasks_for_document(db, document_id: str) -> list[dict]:
 async def upload_document(
     file: UploadFile,
     target_language: str | None = Form(None),
-    owner_id: str | None = Header(None, alias="X-Owner-Id"),
+    owner_id: str | None = Depends(resolve_owner_id),
 ):
     if file.content_type not in SUPPORTED_CONTENT_TYPES:
         raise HTTPException(
@@ -393,7 +394,7 @@ def get_agent_events(document_id: str):
 
 
 @router.get("")
-def list_documents(owner_id: str | None = Header(None, alias="X-Owner-Id")):
+def list_documents(owner_id: str | None = Depends(resolve_owner_id)):
     if not owner_id:
         return {"documents": []}
 
@@ -448,7 +449,7 @@ def _get_owned_document(db, document_id: str, owner_id: str | None) -> dict:
 
 
 @router.get("/{document_id}")
-def get_document(document_id: str, owner_id: str | None = Header(None, alias="X-Owner-Id")):
+def get_document(document_id: str, owner_id: str | None = Depends(resolve_owner_id)):
     db = get_firestore_client()
     doc_data = _get_owned_document(db, document_id, owner_id)
     return _build_document_response(db, document_id, doc_data)
@@ -462,7 +463,7 @@ class TranslateRequest(BaseModel):
 async def translate_document(
     document_id: str,
     body: TranslateRequest,
-    owner_id: str | None = Header(None, alias="X-Owner-Id"),
+    owner_id: str | None = Depends(resolve_owner_id),
 ):
     db = get_firestore_client()
     doc_data = _get_owned_document(db, document_id, owner_id)
@@ -554,7 +555,7 @@ async def translate_document(
 
 
 @router.delete("/{document_id}")
-def delete_document(document_id: str, owner_id: str | None = Header(None, alias="X-Owner-Id")):
+def delete_document(document_id: str, owner_id: str | None = Depends(resolve_owner_id)):
     db = get_firestore_client()
     doc_ref = db.collection("documents").document(document_id)
     doc_snap = doc_ref.get()
