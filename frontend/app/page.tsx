@@ -19,6 +19,7 @@ import {
   type Task,
   type UploadResult,
 } from "@/lib/api";
+import { t } from "@/lib/uiTranslations";
 
 type Stage = "welcome" | "upload" | "processing" | "results" | "history";
 
@@ -149,15 +150,29 @@ export default function Home() {
             Bureaucracy Action Agent
           </span>
           {stage !== "welcome" && (
-            <div className="ml-auto flex items-center gap-3">
-              {stage !== "results" && (
+            <div className="ml-auto flex items-center gap-1">
+              {result && (
                 <button
-                  onClick={() => setStage("history")}
-                  className="text-sm font-medium text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
+                  onClick={() => setStage("results")}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                    stage === "results"
+                      ? "bg-brand-light text-brand dark:bg-indigo-950/40 dark:text-indigo-400"
+                      : "text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
+                  }`}
                 >
-                  History
+                  {t("Dashboard", resultLanguage)}
                 </button>
               )}
+              <button
+                onClick={() => setStage("history")}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  stage === "history"
+                    ? "bg-brand-light text-brand dark:bg-indigo-950/40 dark:text-indigo-400"
+                    : "text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
+                }`}
+              >
+                {t("Documents", resultLanguage)}
+              </button>
               <AuthButton language={resultLanguage} />
             </div>
           )}
@@ -179,7 +194,6 @@ export default function Home() {
           onToggleTask={handleToggleTask}
           onSetConditionStatus={handleSetConditionStatus}
           onChangeLanguage={handleChangeLanguage}
-          onGoToHistory={() => setStage("history")}
           isReprocessing={isReprocessing}
           language={resultLanguage}
         />

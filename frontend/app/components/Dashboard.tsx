@@ -20,7 +20,6 @@ interface Props {
   onToggleTask: (task: Task) => void;
   onSetConditionStatus: (task: Task, conditionStatus: ConditionStatus) => void;
   onChangeLanguage: (language: string | undefined) => void;
-  onGoToHistory: () => void;
   isReprocessing: boolean;
   language?: string;
 }
@@ -41,7 +40,6 @@ export default function Dashboard({
   onToggleTask,
   onSetConditionStatus,
   onChangeLanguage,
-  onGoToHistory,
   isReprocessing,
   language,
 }: Props) {
@@ -133,12 +131,6 @@ export default function Dashboard({
               {t(item.label, language)}
             </button>
           ))}
-          <button
-            onClick={onGoToHistory}
-            className="shrink-0 rounded-full px-3 py-2 text-left text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:rounded-lg"
-          >
-            {t("Documents", language)}
-          </button>
         </nav>
 
         <div className="min-w-0 flex-1 space-y-4">
