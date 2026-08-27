@@ -11,7 +11,8 @@ import ProgressCard from "./ProgressCard";
 import UpcomingDeadlines from "./UpcomingDeadlines";
 import GuidanceView from "./GuidanceView";
 import WorkflowCompleteSummary from "./WorkflowCompleteSummary";
-import { getNextBestAction, isDone } from "@/lib/taskGraph";
+import RiskRadar from "./RiskRadar";
+import { computeRiskStats, getNextBestAction, isDone } from "@/lib/taskGraph";
 import { t, tDetectedCount, tProgressDone } from "@/lib/uiTranslations";
 
 interface Props {
@@ -51,6 +52,7 @@ export default function Dashboard({
   const deadlineCount = result.tasks.filter((task) => task.deadline).length;
   const dependencyCount = result.tasks.filter((task) => task.dependencies.length > 0).length;
   const nextBestAction = getNextBestAction(result.tasks);
+  const riskStats = computeRiskStats(result.tasks, result.missing_information.length);
   const refreshToken = result.tasks
     .map((task) => `${task.id}:${task.status}:${task.condition_status}`)
     .join(",");
@@ -148,10 +150,13 @@ export default function Dashboard({
               {allDone ? (
                 <WorkflowCompleteSummary total={result.tasks.length} language={language} />
               ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <ProgressCard tasks={result.tasks} language={language} />
-                  <UpcomingDeadlines tasks={result.tasks} language={language} limit={4} />
-                </div>
+                <>
+                  <RiskRadar stats={riskStats} language={language} />
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <ProgressCard tasks={result.tasks} language={language} />
+                    <UpcomingDeadlines tasks={result.tasks} language={language} limit={4} />
+                  </div>
+                </>
               )}
 
               <AgentActivityFeed

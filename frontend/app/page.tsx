@@ -163,11 +163,11 @@ export default function Home() {
             Bureaucracy Action Agent
           </span>
           {stage !== "welcome" && (
-            <div className="ml-auto flex items-center gap-1">
+            <div className="ml-auto flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1">
               {result && (
                 <button
                   onClick={() => setStage("results")}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  className={`shrink-0 rounded-full px-2 py-1.5 text-sm font-medium sm:px-3 ${
                     stage === "results"
                       ? "bg-brand-light text-brand dark:bg-indigo-950/40 dark:text-indigo-400"
                       : "text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
@@ -178,7 +178,7 @@ export default function Home() {
               )}
               <button
                 onClick={() => setStage("history")}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                className={`shrink-0 rounded-full px-2 py-1.5 text-sm font-medium sm:px-3 ${
                   stage === "history"
                     ? "bg-brand-light text-brand dark:bg-indigo-950/40 dark:text-indigo-400"
                     : "text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
@@ -188,7 +188,7 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setStage("cases")}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                className={`shrink-0 rounded-full px-2 py-1.5 text-sm font-medium sm:px-3 ${
                   stage === "cases" || stage === "casedetail"
                     ? "bg-brand-light text-brand dark:bg-indigo-950/40 dark:text-indigo-400"
                     : "text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"

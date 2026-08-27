@@ -6,16 +6,23 @@ independent, and the case-level "next best action" is just the best
 candidate across each document's own (unchanged) recommendation logic."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.agent.next_best_action import _PRIORITY_RANK, blocking_count, get_next_best_action_index
+from app.agent.next_best_action import (
+    _PRIORITY_RANK,
+    blocking_count,
+    get_next_best_action_index,
+    is_blocked,
+)
 from app.auth import resolve_owner_id
 from app.firestore_client import get_firestore_client
 from app.models.schemas import ValidatedTask
 from app.routes.documents import _ordered_tasks_for_document
+
+APPROACHING_DEADLINE_DAYS = 7
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
@@ -57,6 +64,78 @@ def _case_next_best_action(candidates: list[tuple[str, str, list[dict]]]) -> dic
     ranked.sort(key=lambda r: r[:3])
     _, _, _, document_id, filename, task = ranked[0]
     return {"document_id": document_id, "filename": filename, "task": task}
+
+
+def _case_risk_stats(documents_out: list[dict]) -> dict:
+    """Deterministic, cross-document at-a-glance signals — each document's
+    own blocked-check stays scoped to its own task array (dependencies are
+    local indices, never mixed across documents), only the counting is
+    aggregated across the whole case."""
+    today = date.today()
+    blocked_count = 0
+    unanswered_conditions = 0
+    approaching_deadlines = 0
+    missing_information_count = 0
+    task_count = 0
+
+    for doc in documents_out:
+        tasks = doc["tasks"]
+        task_count += len(tasks)
+        missing_information_count += len(doc.get("missing_information", []))
+        for i, task in enumerate(tasks):
+            done = task.get("status") == "done"
+            excluded = task.get("is_conditional") and task.get("condition_status") == "not_applicable"
+            if not done and not excluded and is_blocked(tasks, i):
+                blocked_count += 1
+            if task.get("is_conditional") and task.get("condition_status") == "unknown":
+                unanswered_conditions += 1
+            deadline = task.get("deadline")
+            if deadline and not done:
+                try:
+                    days = (date.fromisoformat(deadline) - today).days
+                except ValueError:
+                    continue
+                if 0 <= days <= APPROACHING_DEADLINE_DAYS:
+                    approaching_deadlines += 1
+
+    return {
+        "document_count": len(documents_out),
+        "task_count": task_count,
+        "blocked_count": blocked_count,
+        "unanswered_conditions": unanswered_conditions,
+        "approaching_deadlines": approaching_deadlines,
+        "missing_information_count": missing_information_count,
+    }
+
+
+def _detect_deadline_conflicts(documents_out: list[dict]) -> list[dict]:
+    """Purely deterministic — no LLM involved. Flags any deadline shared by
+    not-done tasks from two or more *different* documents in the case, since
+    that's the one cross-document signal a single-document view can never
+    surface on its own."""
+    by_date: dict[str, list[dict]] = {}
+    for doc in documents_out:
+        for task in doc["tasks"]:
+            if task.get("status") == "done":
+                continue
+            deadline = task.get("deadline")
+            if not deadline:
+                continue
+            by_date.setdefault(deadline, []).append(
+                {
+                    "document_id": doc["document_id"],
+                    "filename": doc["filename"],
+                    "task_id": task["id"],
+                    "title": task["title"],
+                }
+            )
+
+    conflicts = []
+    for deadline, entries in by_date.items():
+        if len({e["document_id"] for e in entries}) > 1:
+            conflicts.append({"deadline": deadline, "tasks": entries})
+    conflicts.sort(key=lambda c: c["deadline"])
+    return conflicts
 
 
 @router.post("")
@@ -125,6 +204,7 @@ def get_case(case_id: str, owner_id: str | None = Depends(resolve_owner_id)):
                 "document_id": document_id,
                 "filename": doc.get("filename", ""),
                 "summary": doc.get("summary", ""),
+                "missing_information": doc.get("missing_information", []),
                 "tasks": tasks_with_ids,
             }
         )
@@ -135,6 +215,8 @@ def get_case(case_id: str, owner_id: str | None = Depends(resolve_owner_id)):
         "name": case_data.get("name", ""),
         "documents": documents_out,
         "next_best_action": _case_next_best_action(candidates),
+        "stats": _case_risk_stats(documents_out),
+        "deadline_conflicts": _detect_deadline_conflicts(documents_out),
     }
 
 

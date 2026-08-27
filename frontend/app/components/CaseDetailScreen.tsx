@@ -15,6 +15,7 @@ import {
   type Task,
 } from "@/lib/api";
 import TaskCard from "./TaskCard";
+import RiskRadar from "./RiskRadar";
 import { t } from "@/lib/uiTranslations";
 
 interface Props {
@@ -141,6 +142,28 @@ export default function CaseDetailScreen({
           <h1 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
             {detail.name}
           </h1>
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+              {detail.stats.document_count}
+            </span>{" "}
+            {detail.stats.document_count === 1 ? t("document", language) : t("documents", language)}
+            <span className="text-zinc-300 dark:text-zinc-700">→</span>
+            <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+              {detail.stats.task_count}
+            </span>{" "}
+            {t("actions extracted", language)}
+            <span className="text-zinc-300 dark:text-zinc-700">→</span>
+            <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+              {detail.stats.blocked_count}
+            </span>{" "}
+            {t("tasks blocked", language)}
+            <span className="text-zinc-300 dark:text-zinc-700">→</span>
+            <span
+              className={`font-semibold ${nba ? "text-brand dark:text-indigo-400" : "text-zinc-400 dark:text-zinc-600"}`}
+            >
+              {nba ? t("Next action available", language) : t("No next action yet", language)}
+            </span>
+          </p>
         </div>
         <button
           onClick={handleDeleteCase}
@@ -167,6 +190,40 @@ export default function CaseDetailScreen({
           <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
             {t("Nothing is unblocked yet", language)}
           </p>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <RiskRadar
+          stats={{
+            approachingDeadlines: detail.stats.approaching_deadlines,
+            blockedCount: detail.stats.blocked_count,
+            unansweredConditions: detail.stats.unanswered_conditions,
+            missingInformationCount: detail.stats.missing_information_count,
+          }}
+          language={language}
+        />
+      </div>
+
+      {detail.deadline_conflicts.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950">
+          <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+            ⚠ {t("Scheduling conflicts", language)}
+          </p>
+          <ul className="mt-2 space-y-2 text-sm text-red-700 dark:text-red-300">
+            {detail.deadline_conflicts.map((conflict) => (
+              <li key={conflict.deadline}>
+                <span className="font-medium">{conflict.deadline}</span>
+                {": "}
+                {conflict.tasks.map((task, i) => (
+                  <span key={task.task_id}>
+                    {i > 0 && ", "}
+                    {task.title} ({task.filename})
+                  </span>
+                ))}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

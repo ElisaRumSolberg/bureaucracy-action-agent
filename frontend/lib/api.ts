@@ -155,7 +155,22 @@ export interface CaseDocument {
   document_id: string;
   filename: string;
   summary: string;
+  missing_information: string[];
   tasks: Task[];
+}
+
+export interface CaseStats {
+  document_count: number;
+  task_count: number;
+  blocked_count: number;
+  unanswered_conditions: number;
+  approaching_deadlines: number;
+  missing_information_count: number;
+}
+
+export interface DeadlineConflict {
+  deadline: string;
+  tasks: { document_id: string; filename: string; task_id: string; title: string }[];
 }
 
 export interface CaseDetail {
@@ -163,6 +178,8 @@ export interface CaseDetail {
   name: string;
   documents: CaseDocument[];
   next_best_action: { document_id: string; filename: string; task: Task } | null;
+  stats: CaseStats;
+  deadline_conflicts: DeadlineConflict[];
 }
 
 export async function listCases(): Promise<CaseSummary[]> {

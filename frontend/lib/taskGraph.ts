@@ -27,6 +27,46 @@ export function blockingCount(tasks: Task[], index: number): number {
   return tasks.filter((t) => t.dependencies.includes(index)).length;
 }
 
+export interface RiskStats {
+  approachingDeadlines: number;
+  blockedCount: number;
+  unansweredConditions: number;
+  missingInformationCount: number;
+}
+
+const APPROACHING_DEADLINE_DAYS = 7;
+
+/** At-a-glance signals for a single document's tasks — mirrors the backend's
+ * per-document arithmetic in cases.py's _case_risk_stats so a single
+ * document's numbers and a case's aggregated numbers never disagree on what
+ * counts as "approaching" or "blocked". */
+export function computeRiskStats(tasks: Task[], missingInformationCount: number): RiskStats {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let approachingDeadlines = 0;
+  let blockedCount = 0;
+  let unansweredConditions = 0;
+
+  tasks.forEach((task, index) => {
+    if (!isDone(task) && !isConditionNotApplicable(task) && isBlocked(tasks, index)) {
+      blockedCount += 1;
+    }
+    if (task.is_conditional && task.condition_status === "unknown") {
+      unansweredConditions += 1;
+    }
+    if (task.deadline && !isDone(task)) {
+      const due = new Date(`${task.deadline}T00:00:00`);
+      const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+      if (days >= 0 && days <= APPROACHING_DEADLINE_DAYS) {
+        approachingDeadlines += 1;
+      }
+    }
+  });
+
+  return { approachingDeadlines, blockedCount, unansweredConditions, missingInformationCount };
+}
+
 export function computeLevels(tasks: Task[]): number[] {
   const levels = new Array(tasks.length).fill(-1);
 
