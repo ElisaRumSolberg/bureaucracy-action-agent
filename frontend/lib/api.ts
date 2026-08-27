@@ -260,7 +260,7 @@ export async function updateTaskStatus(
 ): Promise<void> {
   const response = await fetch(`${API_URL}/documents/tasks/${taskId}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: await ownerHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ status }),
   });
 
@@ -276,7 +276,7 @@ export async function updateConditionStatus(
 ): Promise<void> {
   const response = await fetch(`${API_URL}/documents/tasks/${taskId}/condition-status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: await ownerHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ condition_status: conditionStatus }),
   });
 
@@ -293,7 +293,9 @@ export interface AgentEvent {
 }
 
 export async function getAgentEvents(documentId: string): Promise<AgentEvent[]> {
-  const response = await fetch(`${API_URL}/documents/${documentId}/events`);
+  const response = await fetch(`${API_URL}/documents/${documentId}/events`, {
+    headers: await ownerHeaders(),
+  });
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -315,6 +317,7 @@ export interface TaskGuidance {
 export async function getTaskGuidance(taskId: string): Promise<TaskGuidance> {
   const response = await fetch(`${API_URL}/documents/tasks/${taskId}/guidance`, {
     method: "POST",
+    headers: await ownerHeaders(),
   });
 
   if (!response.ok) {
@@ -331,7 +334,7 @@ export async function askTaskQuestion(
 ): Promise<string> {
   const response = await fetch(`${API_URL}/documents/tasks/${taskId}/ask`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await ownerHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ question }),
   });
 
@@ -353,6 +356,7 @@ export interface DelayImpact {
 export async function getDelayImpact(taskId: string): Promise<DelayImpact> {
   const response = await fetch(`${API_URL}/documents/tasks/${taskId}/delay-impact`, {
     method: "POST",
+    headers: await ownerHeaders(),
   });
 
   if (!response.ok) {
