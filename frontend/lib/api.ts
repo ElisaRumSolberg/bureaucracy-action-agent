@@ -32,6 +32,7 @@ export interface UploadResult {
   consequences: string[];
   saved_task_ids: string[];
   content_language?: string | null;
+  case_id?: string | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -69,6 +70,7 @@ export interface DocumentSummary {
   status: string;
   summary: string;
   uploaded_at: string | null;
+  case_id?: string | null;
 }
 
 export async function listDocuments(): Promise<DocumentSummary[]> {
@@ -124,7 +126,94 @@ export async function deleteDocument(documentId: string): Promise<void> {
   }
 }
 
+export async function assignDocumentToCase(
+  documentId: string,
+  caseId: string | null
+): Promise<void> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/case`, {
+    method: "PATCH",
+    headers: await ownerHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ case_id: caseId }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not update this document's case.");
+  }
+}
+
 export class ApiError extends Error {}
+
+export interface CaseSummary {
+  case_id: string;
+  name: string;
+  created_at: string | null;
+  document_count: number;
+}
+
+export interface CaseDocument {
+  document_id: string;
+  filename: string;
+  summary: string;
+  tasks: Task[];
+}
+
+export interface CaseDetail {
+  case_id: string;
+  name: string;
+  documents: CaseDocument[];
+  next_best_action: { document_id: string; filename: string; task: Task } | null;
+}
+
+export async function listCases(): Promise<CaseSummary[]> {
+  const response = await fetch(`${API_URL}/cases`, { headers: await ownerHeaders() });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not load cases.");
+  }
+
+  const data = await response.json();
+  return data.cases as CaseSummary[];
+}
+
+export async function createCase(name: string): Promise<CaseSummary> {
+  const response = await fetch(`${API_URL}/cases`, {
+    method: "POST",
+    headers: await ownerHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not create this case.");
+  }
+
+  return response.json();
+}
+
+export async function getCase(caseId: string): Promise<CaseDetail> {
+  const response = await fetch(`${API_URL}/cases/${caseId}`, { headers: await ownerHeaders() });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not load this case.");
+  }
+
+  return response.json();
+}
+
+export async function deleteCase(caseId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/cases/${caseId}`, {
+    method: "DELETE",
+    headers: await ownerHeaders(),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? "Could not delete this case.");
+  }
+}
 
 export async function uploadDocument(
   file: File,

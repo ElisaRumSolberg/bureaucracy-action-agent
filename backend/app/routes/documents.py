@@ -470,6 +470,7 @@ def list_documents(owner_id: str | None = Depends(resolve_owner_id)):
                 "status": data.get("status", ""),
                 "summary": data.get("summary", ""),
                 "uploaded_at": data.get("uploaded_at"),
+                "case_id": data.get("case_id"),
             }
         )
     documents.sort(key=lambda d: d.get("uploaded_at") or "", reverse=True)
@@ -495,6 +496,7 @@ def _build_document_response(db, document_id: str, doc_data: dict) -> dict:
         "consequences": doc_data.get("consequences", []),
         "saved_task_ids": [t["id"] for t in tasks_with_ids],
         "content_language": doc_data.get("content_language"),
+        "case_id": doc_data.get("case_id"),
     }
 
 
@@ -612,6 +614,28 @@ async def translate_document(
 
     doc_data.update(doc_update)
     return _build_document_response(db, document_id, doc_data)
+
+
+class DocumentCaseUpdate(BaseModel):
+    case_id: str | None = None
+
+
+@router.patch("/{document_id}/case")
+def update_document_case(
+    document_id: str,
+    body: DocumentCaseUpdate,
+    owner_id: str | None = Depends(resolve_owner_id),
+):
+    db = get_firestore_client()
+    _get_owned_document(db, document_id, owner_id)
+
+    if body.case_id:
+        case_snap = db.collection("cases").document(body.case_id).get()
+        if not case_snap.exists or case_snap.to_dict().get("owner_id") != owner_id:
+            raise HTTPException(status_code=404, detail="Case not found.")
+
+    db.collection("documents").document(document_id).update({"case_id": body.case_id})
+    return {"document_id": document_id, "case_id": body.case_id}
 
 
 @router.delete("/{document_id}")

@@ -8,6 +8,8 @@ import AuthButton from "./components/AuthButton";
 import ProcessingScreen from "./components/ProcessingScreen";
 import Dashboard from "./components/Dashboard";
 import HistoryScreen from "./components/HistoryScreen";
+import CasesScreen from "./components/CasesScreen";
+import CaseDetailScreen from "./components/CaseDetailScreen";
 import {
   ApiError,
   getDocument,
@@ -21,7 +23,7 @@ import {
 } from "@/lib/api";
 import { t } from "@/lib/uiTranslations";
 
-type Stage = "welcome" | "upload" | "processing" | "results" | "history";
+type Stage = "welcome" | "upload" | "processing" | "results" | "history" | "cases" | "casedetail";
 
 export default function Home() {
   const [stage, setStage] = useState<Stage>("welcome");
@@ -29,6 +31,7 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const [resultLanguage, setResultLanguage] = useState<string | undefined>(undefined);
+  const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
 
   async function handleFileSelected(file: File, targetLanguage?: string) {
     setErrorMessage(null);
@@ -183,6 +186,16 @@ export default function Home() {
               >
                 {t("Documents", resultLanguage)}
               </button>
+              <button
+                onClick={() => setStage("cases")}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  stage === "cases" || stage === "casedetail"
+                    ? "bg-brand-light text-brand dark:bg-indigo-950/40 dark:text-indigo-400"
+                    : "text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
+                }`}
+              >
+                {t("Cases", resultLanguage)}
+              </button>
               <AuthButton language={resultLanguage} />
             </div>
           )}
@@ -196,6 +209,27 @@ export default function Home() {
       {stage === "processing" && <ProcessingScreen />}
       {stage === "history" && (
         <HistoryScreen onOpen={handleOpenFromHistory} onBack={() => setStage("upload")} />
+      )}
+      {stage === "cases" && (
+        <CasesScreen
+          language={resultLanguage}
+          onOpen={(caseId) => {
+            setActiveCaseId(caseId);
+            setStage("casedetail");
+          }}
+        />
+      )}
+      {stage === "casedetail" && activeCaseId && (
+        <CaseDetailScreen
+          caseId={activeCaseId}
+          language={resultLanguage}
+          onBack={() => setStage("cases")}
+          onDeleted={() => {
+            setActiveCaseId(null);
+            setStage("cases");
+          }}
+          onOpenDocument={handleOpenFromHistory}
+        />
       )}
       {stage === "results" && result && (
         <Dashboard
