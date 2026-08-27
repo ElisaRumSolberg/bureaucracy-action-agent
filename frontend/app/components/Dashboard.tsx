@@ -28,7 +28,7 @@ interface Props {
 type View = "dashboard" | "actionflow" | "tasks" | "guidance" | "activitylog";
 
 const NAV_ITEMS: { view: View; label: string }[] = [
-  { view: "dashboard", label: "Dashboard" },
+  { view: "dashboard", label: "Overview" },
   { view: "actionflow", label: "Action Flow" },
   { view: "tasks", label: "Tasks" },
   { view: "guidance", label: "Guidance" },
@@ -69,37 +69,24 @@ export default function Dashboard({
           </h1>
           <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">{result.summary}</p>
 
-          <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Actions", language)}</dt>
-              <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-                {tDetectedCount(result.tasks.length, language)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Deadlines", language)}</dt>
-              <dd className="font-medium text-zinc-800 dark:text-zinc-200">{deadlineCount}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                {t("Dependencies", language)}
-              </dt>
-              <dd className="font-medium text-zinc-800 dark:text-zinc-200">{dependencyCount}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">
-                {t("Missing details", language)}
-              </dt>
-              <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-                {result.missing_information.length}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Progress", language)}</dt>
-              <dd className="font-medium text-zinc-800 dark:text-zinc-200">
-                {tProgressDone(doneCount, result.tasks.length, language)}
-              </dd>
-            </div>
+          <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {[
+              { label: t("Actions", language), value: tDetectedCount(result.tasks.length, language) },
+              { label: t("Deadlines", language), value: deadlineCount },
+              { label: t("Dependencies", language), value: dependencyCount },
+              { label: t("Missing details", language), value: result.missing_information.length },
+              { label: t("Progress", language), value: tProgressDone(doneCount, result.tasks.length, language) },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-xl border border-zinc-200 bg-white/70 px-3 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/70"
+              >
+                <dt className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                  {stat.label}
+                </dt>
+                <dd className="mt-0.5 text-lg font-semibold text-zinc-900 dark:text-zinc-50">{stat.value}</dd>
+              </div>
+            ))}
           </dl>
 
           <div className="mt-3">

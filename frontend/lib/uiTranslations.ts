@@ -809,6 +809,13 @@ const STRINGS: Record<string, Record<UILanguage, string>> = {
     Français: "Tableau de bord",
     Español: "Panel",
   },
+  Overview: {
+    Türkçe: "Genel Bakış",
+    Norsk: "Oversikt",
+    Deutsch: "Übersicht",
+    Français: "Aperçu",
+    Español: "Resumen",
+  },
   Documents: {
     Türkçe: "Belgeler",
     Norsk: "Dokumenter",
