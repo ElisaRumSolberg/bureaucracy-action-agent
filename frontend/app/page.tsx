@@ -62,6 +62,14 @@ export default function Home() {
     }
   }
 
+  // Both handlers below apply the change optimistically for instant
+  // feedback, then re-fetch the document from the backend on success —
+  // the backend recomputes deadlines/priority/condition-derived state and
+  // writes activity-log events as a side effect of the PATCH, so trusting
+  // the optimistic patch alone risks the UI silently drifting from what
+  // actually got persisted (a real gap for a demo where these two must
+  // never visibly disagree). On failure, revert instead of re-fetching.
+
   async function handleToggleTask(task: Task) {
     const nextStatus = task.status === "done" ? "todo" : "done";
     setResult((current) =>
@@ -76,6 +84,7 @@ export default function Home() {
     );
     try {
       await updateTaskStatus(task.id, nextStatus);
+      if (result) setResult(await getDocument(result.document_id));
     } catch {
       // Revert on failure — the backend is the source of truth.
       setResult((current) =>
@@ -105,6 +114,7 @@ export default function Home() {
     );
     try {
       await updateConditionStatus(task.id, conditionStatus);
+      if (result) setResult(await getDocument(result.document_id));
     } catch {
       setResult((current) =>
         current
