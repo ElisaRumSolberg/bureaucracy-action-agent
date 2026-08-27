@@ -27,6 +27,13 @@ def compute_downstream_impact(all_tasks: list[dict], target_index: int) -> dict:
         for idx, task in enumerate(all_tasks):
             if idx in downstream or idx == target_index:
                 continue
+            # A conditional task the user has ruled out is already treated as
+            # "satisfied" for unblocking purposes elsewhere (next_best_action.
+            # is_satisfied) — it can neither be impacted by a delay nor pass
+            # one along to whatever depends on it, so it never enters the
+            # downstream set at all.
+            if task.get("is_conditional") and task.get("condition_status") == "not_applicable":
+                continue
             deps = task.get("dependencies", [])
             if target_index in deps or any(dep in downstream for dep in deps):
                 downstream.add(idx)

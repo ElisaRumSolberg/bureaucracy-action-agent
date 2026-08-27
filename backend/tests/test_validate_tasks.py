@@ -1,5 +1,8 @@
 from datetime import timedelta
 
+import pytest
+from pydantic import ValidationError
+
 from app.agent.tools import validate_tasks
 from app.agent.validation import today_utc
 from app.models.schemas import ExtractionResult, Task
@@ -18,6 +21,31 @@ def make_task(**overrides) -> Task:
     )
     defaults.update(overrides)
     return Task(**defaults)
+
+
+def test_task_missing_required_field_is_rejected():
+    """Current project behavior: a Task without a required field (title,
+    description, priority, confidence, source_excerpt) is rejected outright
+    via a Pydantic ValidationError — there is no silent normalization to
+    defaults for these, unlike ValidatedTask's own fields (status,
+    priority_reason, etc.), which do have defaults."""
+    with pytest.raises(ValidationError):
+        Task(title="Missing everything else")
+
+
+def test_task_with_hallucinated_extra_field_is_silently_ignored():
+    """Pydantic's default behavior (no extra='forbid' configured) drops
+    unknown keys rather than raising — an LLM inventing an extra field on a
+    task must not crash extraction."""
+    task = Task(
+        title="x",
+        description="d",
+        priority="low",
+        confidence=0.9,
+        source_excerpt="e",
+        made_up_field="should be dropped",  # type: ignore[call-arg]
+    )
+    assert "made_up_field" not in task.model_dump()
 
 
 def test_no_deadline_stays_null():
