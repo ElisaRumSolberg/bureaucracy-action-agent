@@ -196,7 +196,14 @@ export default function Home() {
               >
                 {t("Cases", resultLanguage)}
               </button>
-              <AuthButton language={resultLanguage} />
+              <AuthButton
+                language={resultLanguage}
+                onSignOut={() => {
+                  setStage("welcome");
+                  setResult(null);
+                  setActiveCaseId(null);
+                }}
+              />
             </div>
           )}
         </div>

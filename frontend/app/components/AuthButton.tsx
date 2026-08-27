@@ -6,9 +6,10 @@ import { t } from "@/lib/uiTranslations";
 
 interface Props {
   language?: string;
+  onSignOut?: () => void;
 }
 
-export default function AuthButton({ language }: Props) {
+export default function AuthButton({ language, onSignOut }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +23,10 @@ export default function AuthButton({ language }: Props) {
           <img src={user.photoURL} alt="" className="h-6 w-6 rounded-full" referrerPolicy="no-referrer" />
         )}
         <button
-          onClick={() => signOut()}
+          onClick={async () => {
+            await signOut();
+            onSignOut?.();
+          }}
           className="text-sm font-medium text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
         >
           {t("Sign out", language)}
