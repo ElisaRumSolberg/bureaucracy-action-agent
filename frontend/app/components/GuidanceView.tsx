@@ -2,8 +2,19 @@
 
 import { useEffect, useRef } from "react";
 import type { Task } from "@/lib/api";
-import { t, tTaskLabel } from "@/lib/uiTranslations";
+import { localeFor, t, tTaskLabel } from "@/lib/uiTranslations";
 import TaskGuidancePanel from "./TaskGuidancePanel";
+import TaskChatPanel from "./TaskChatPanel";
+import TaskDelayImpactPanel from "./TaskDelayImpactPanel";
+
+function formatDeadline(deadline: string | null, language: string | undefined): string {
+  if (!deadline) return t("No deadline stated", language);
+  return new Date(`${deadline}T00:00:00`).toLocaleDateString(localeFor(language), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 interface Props {
   tasks: Task[];
@@ -49,7 +60,35 @@ export default function GuidanceView({ tasks, language, focusTaskId }: Props) {
             <h3 className="mt-0.5 break-words font-semibold text-zinc-900 dark:text-zinc-50">
               {task.title}
             </h3>
+            {task.description && (
+              <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
+                {task.description}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+              <span>
+                📅 {t("Deadline", language)}: {formatDeadline(task.deadline, language)}
+              </span>
+              <span>
+                📄 {t("Required documents", language)}:{" "}
+                {task.required_documents.length > 0
+                  ? task.required_documents.join(", ")
+                  : t("None stated", language)}
+              </span>
+            </div>
+            {task.source_excerpt && (
+              <details className="mt-2">
+                <summary className="cursor-pointer select-none text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {t("Source evidence", language)}
+                </summary>
+                <p className="mt-1 rounded-lg bg-zinc-50 p-2.5 text-xs italic leading-5 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+                  &ldquo;{task.source_excerpt}&rdquo;
+                </p>
+              </details>
+            )}
             <TaskGuidancePanel taskId={task.id} language={language} initialOpen={isFocused} />
+            <TaskChatPanel taskId={task.id} language={language} />
+            <TaskDelayImpactPanel taskId={task.id} language={language} />
           </div>
         );
       })}

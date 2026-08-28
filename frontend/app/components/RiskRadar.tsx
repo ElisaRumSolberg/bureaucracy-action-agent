@@ -24,10 +24,10 @@ export default function RiskRadar({ stats, language }: Props) {
         {items.map((item) => (
           <div
             key={item.label}
-            className={`rounded-xl p-3 text-center ${
+            className={`rounded-xl border p-3 text-center ${
               item.count > 0
-                ? "bg-amber-50 dark:bg-amber-950/30"
-                : "bg-zinc-50 dark:bg-zinc-800/40"
+                ? "border-amber-200/60 bg-amber-50 dark:border-amber-900/40 dark:bg-zinc-900"
+                : "border-transparent bg-zinc-50 dark:bg-zinc-800/40"
             }`}
           >
             <p className="text-lg leading-none">{item.icon}</p>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ConditionStatus, Task } from "@/lib/api";
 import { isBlocked, isConditionNotApplicable } from "@/lib/taskGraph";
 import { translateReason } from "@/lib/reasonTranslations";
@@ -65,6 +68,7 @@ export default function TaskCard({
   const blocked = !isDone && !notApplicable && isBlocked(allTasks, index);
   const confidence = confidenceLabel(task.confidence, language);
   const dimmed = isDone || notApplicable;
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <div
@@ -174,96 +178,113 @@ export default function TaskCard({
         {task.description}
       </p>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-zinc-400">
-            {t("Deadline", language)}
-          </dt>
-          <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {formatDeadline(task.deadline, task.deadline_inherited, language)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Risk", language)}</dt>
-          <dd className={`mt-0.5 font-medium ${RISK_STYLES[task.risk_level]}`}>
-            {t(task.risk_level.toUpperCase(), language)}
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
+          📅 {formatDeadline(task.deadline, task.deadline_inherited, language)}
+        </span>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium ${RISK_STYLES[task.risk_level]} ${
+            task.risk_level === "high"
+              ? "border-red-200 dark:border-red-900"
+              : task.risk_level === "medium"
+                ? "border-amber-200 dark:border-amber-900"
+                : "border-zinc-200 dark:border-zinc-700"
+          }`}
+        >
+          {t(task.risk_level.toUpperCase(), language)} {t("RISK", language)}
+        </span>
+      </div>
+
+      <button
+        onClick={() => setShowDetails((v) => !v)}
+        className="mt-3 text-xs font-medium text-brand hover:underline dark:text-indigo-400"
+      >
+        {showDetails ? t("Hide details", language) : t("Show details", language)}
+      </button>
+
+      {showDetails && (
+        <>
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             {task.risk_reason && (
-              <span className="block text-xs font-normal text-zinc-500 dark:text-zinc-400">
-                {translateReason(task.risk_reason, language)}
+              <div className="col-span-2">
+                <dt className="text-xs uppercase tracking-wide text-zinc-400">{t("Risk", language)}</dt>
+                <dd className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                  {translateReason(task.risk_reason, language)}
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-400">
+                {t("Depends on", language)}
+              </dt>
+              <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
+                {dependencyTitles.length === 0 && t("Nothing", language)}
+                {dependencyTitles.length > 0 && dependencyTitles.length <= 2 && (
+                  dependencyTitles.join(", ")
+                )}
+                {dependencyTitles.length > 2 && (
+                  <details>
+                    <summary className="cursor-pointer select-none">
+                      {tTasksCount(dependencyTitles.length, language)}
+                    </summary>
+                    <ul className="mt-1 list-inside list-disc font-normal text-zinc-600 dark:text-zinc-400">
+                      {dependencyTitles.map((title) => (
+                        <li key={title}>{title}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-zinc-400">
+                {t("Required documents", language)}
+              </dt>
+              <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
+                {task.required_documents.length > 0
+                  ? task.required_documents.join(", ")
+                  : t("None stated", language)}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+            <div className="flex items-center gap-2 text-xs">
+              {confidence.needsVerification && <span>⚠</span>}
+              <span
+                className={
+                  confidence.needsVerification
+                    ? "font-medium text-amber-600 dark:text-amber-400"
+                    : "text-zinc-400"
+                }
+              >
+                {confidence.label} ({Math.round(task.confidence * 100)}%)
               </span>
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-zinc-400">
-            {t("Depends on", language)}
-          </dt>
-          <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {dependencyTitles.length === 0 && t("Nothing", language)}
-            {dependencyTitles.length > 0 && dependencyTitles.length <= 2 && (
-              dependencyTitles.join(", ")
-            )}
-            {dependencyTitles.length > 2 && (
-              <details>
-                <summary className="cursor-pointer select-none">
-                  {tTasksCount(dependencyTitles.length, language)}
+            </div>
+            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <div
+                className={`h-full rounded-full ${confidence.needsVerification ? "bg-amber-500" : "bg-emerald-500"}`}
+                style={{ width: `${Math.round(task.confidence * 100)}%` }}
+              />
+            </div>
+
+            {task.source_excerpt && (
+              <details className="group mt-3">
+                <summary className="cursor-pointer select-none text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {t("Source evidence", language)}
                 </summary>
-                <ul className="mt-1 list-inside list-disc font-normal text-zinc-600 dark:text-zinc-400">
-                  {dependencyTitles.map((title) => (
-                    <li key={title}>{title}</li>
-                  ))}
-                </ul>
+                <p className="mt-2 rounded-lg bg-zinc-50 p-3 text-xs italic leading-5 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+                  &ldquo;{task.source_excerpt}&rdquo;
+                </p>
               </details>
             )}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-zinc-400">
-            {t("Required documents", language)}
-          </dt>
-          <dd className="mt-0.5 font-medium text-zinc-800 dark:text-zinc-200">
-            {task.required_documents.length > 0
-              ? task.required_documents.join(", ")
-              : t("None stated", language)}
-          </dd>
-        </div>
-      </dl>
 
-      <div className="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-        <div className="flex items-center gap-2 text-xs">
-          {confidence.needsVerification && <span>⚠</span>}
-          <span
-            className={
-              confidence.needsVerification
-                ? "font-medium text-amber-600 dark:text-amber-400"
-                : "text-zinc-400"
-            }
-          >
-            {confidence.label} ({Math.round(task.confidence * 100)}%)
-          </span>
-        </div>
-        <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-          <div
-            className={`h-full rounded-full ${confidence.needsVerification ? "bg-amber-500" : "bg-emerald-500"}`}
-            style={{ width: `${Math.round(task.confidence * 100)}%` }}
-          />
-        </div>
-
-        {task.source_excerpt && (
-          <details className="group mt-3">
-            <summary className="cursor-pointer select-none text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              {t("Source evidence", language)}
-            </summary>
-            <p className="mt-2 rounded-lg bg-zinc-50 p-3 text-xs italic leading-5 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
-              &ldquo;{task.source_excerpt}&rdquo;
-            </p>
-          </details>
-        )}
-
-        <TaskGuidancePanel taskId={task.id} language={language} />
-        <TaskChatPanel taskId={task.id} language={language} />
-        <TaskDelayImpactPanel taskId={task.id} language={language} />
-      </div>
+            <TaskGuidancePanel taskId={task.id} language={language} />
+            <TaskChatPanel taskId={task.id} language={language} />
+            <TaskDelayImpactPanel taskId={task.id} language={language} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

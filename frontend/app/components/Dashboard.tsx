@@ -46,6 +46,7 @@ export default function Dashboard({
 }: Props) {
   const [view, setView] = useState<View>("dashboard");
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
+  const [summaryOpen, setSummaryOpen] = useState(true);
 
   const doneCount = result.tasks.filter((task) => task.status === "done").length;
   const allDone = result.tasks.length > 0 && result.tasks.every(isDone);
@@ -63,11 +64,23 @@ export default function Dashboard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-zinc-400">{t("Action plan", language)}</p>
-          <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {t("Document Summary", language)}
-          </h1>
-          <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">{result.summary}</p>
+          <div className="flex items-center gap-2">
+            <div>
+              <p className="text-sm font-medium text-zinc-400">{t("Action plan", language)}</p>
+              <h1 className="mt-1 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+                {t("Document Summary", language)}
+              </h1>
+            </div>
+            <button
+              onClick={() => setSummaryOpen((v) => !v)}
+              className="ml-1 mt-3 text-xs font-medium text-zinc-400 underline hover:text-brand dark:hover:text-indigo-400"
+            >
+              {summaryOpen ? t("Hide", language) : t("Show", language)}
+            </button>
+          </div>
+          {summaryOpen && (
+            <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">{result.summary}</p>
+          )}
 
           <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {[

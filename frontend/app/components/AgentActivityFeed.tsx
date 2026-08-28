@@ -108,6 +108,12 @@ export default function AgentActivityFeed({
             {displayedEvents.map((event, idx) => (
               <li key={idx} className="flex gap-2 text-xs text-zinc-600 dark:text-zinc-400">
                 <span>{EVENT_ICON[event.type] ?? "•"}</span>
+                <span className="shrink-0 font-mono text-zinc-400 dark:text-zinc-500">
+                  {new Date(event.created_at).toLocaleTimeString(undefined, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
                 <span>{event.message}</span>
               </li>
             ))}
