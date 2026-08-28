@@ -32,26 +32,26 @@ const FEATURES = [
   {
     icon: "🎯",
     title: "Next Best Action",
-    description:
-      "A deterministic ranking engine — not the model — decides what you should do first, based on priority, blockers, and deadlines.",
+    summary: "Shows you what to do first.",
+    description: "Prioritized by deterministic rules, not model opinion.",
   },
   {
     icon: "📡",
     title: "Risk Radar",
-    description:
-      "Approaching deadlines, blocked tasks, unanswered conditions, and missing information — surfaced at a glance, before they become a problem.",
+    summary: "Surfaces what needs attention before it's a problem.",
+    description: "Approaching deadlines, blocked tasks, unanswered conditions, missing information.",
   },
   {
     icon: "🗂️",
     title: "Case Grouping",
-    description:
-      "Group every document in one bureaucratic process into a Case, with one shared task list and one shared next best action.",
+    summary: "One process, one plan.",
+    description: "Every document in a bureaucratic process shares one task list and one next best action.",
   },
   {
     icon: "⚠️",
     title: "Cross-Document Conflicts",
-    description:
-      "Two documents in the same Case sharing a deadline? The agent flags it automatically — no manual cross-checking required.",
+    summary: "Catches deadline clashes automatically.",
+    description: "Two documents sharing a deadline? Flagged for you — no manual cross-checking.",
   },
 ];
 
@@ -113,7 +113,7 @@ export default function WelcomeScreen({ onContinue }: Props) {
                 onClick={onContinue}
                 className="rounded-full bg-brand px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand/20 transition hover:-translate-y-0.5 hover:opacity-90 dark:bg-indigo-500"
               >
-                {t("Continue", undefined)}
+                {t("Open Dashboard", undefined)}
               </button>
               <div className="flex items-center gap-4 text-sm">
                 <button
@@ -166,19 +166,26 @@ export default function WelcomeScreen({ onContinue }: Props) {
         </div>
 
         {/* Live preview: what the agent tells you right after upload */}
-        <div className="mt-10 w-full max-w-sm rounded-xl border border-zinc-200 bg-white/70 p-4 text-left backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/70">
-          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-brand dark:text-indigo-400">
+        <div className="mt-10 w-full max-w-md rounded-2xl border-2 border-brand/30 bg-white/80 p-5 text-left shadow-lg shadow-brand/10 backdrop-blur dark:border-indigo-500/30 dark:bg-zinc-900/80">
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-brand dark:text-indigo-400">
             <span className="h-1.5 w-1.5 rounded-full bg-brand dark:bg-indigo-400" />
             Next Best Action
           </div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Upload proof of funds</p>
-          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Deadline: 3 days</p>
-          <div className="mt-3 space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-            <p className="font-medium text-zinc-700 dark:text-zinc-300">Why now?</p>
-            <p>• Blocks residence application</p>
-            <p>• High priority</p>
-            <p>• Required by 2 documents</p>
+          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Upload proof of funds</p>
+          <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>⏰ Due in 3 days</span>
+            <span>🔒 Blocks 2 other actions</span>
           </div>
+          <details className="mt-3 text-xs">
+            <summary className="cursor-pointer select-none font-medium text-brand hover:underline dark:text-indigo-400">
+              → Why this comes first
+            </summary>
+            <div className="mt-2 space-y-1 text-zinc-500 dark:text-zinc-400">
+              <p>• Blocks residence application</p>
+              <p>• High priority</p>
+              <p>• Required by 2 documents</p>
+            </div>
+          </details>
         </div>
 
         {/* How it works */}
@@ -273,14 +280,17 @@ export default function WelcomeScreen({ onContinue }: Props) {
                 {f.icon}
               </div>
               <div className="mb-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{f.title}</div>
-              <div className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+              <div className="text-xs font-medium leading-relaxed text-zinc-700 dark:text-zinc-300">
+                {f.summary}
+              </div>
+              <div className="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
                 {f.description}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-12 text-xs text-zinc-400 dark:text-zinc-600">
+        <div className="mt-12 text-[10px] text-zinc-300 dark:text-zinc-700">
           Built for the Google Cloud &quot;All Things Agentic&quot; hackathon — Taskmaster track.
         </div>
       </div>
