@@ -165,15 +165,37 @@ def list_cases(owner_id: str | None = Depends(resolve_owner_id)):
     cases = []
     for snap in case_snaps:
         data = snap.to_dict()
-        document_count = sum(
-            1 for _ in db.collection("documents").where("case_id", "==", snap.id).stream()
-        )
+        owned_documents = _owned_documents_for_case(db, snap.id, owner_id)
+
+        documents_out = []
+        candidates = []
+        for doc in owned_documents:
+            document_id = doc["document_id"]
+            ordered_tasks = _ordered_tasks_for_document(db, document_id)
+            tasks_with_ids = [
+                {"id": f"task_{document_id}_{i}", **ValidatedTask(**task).model_dump()}
+                for i, task in enumerate(ordered_tasks)
+            ]
+            documents_out.append(
+                {"document_id": document_id, "filename": doc.get("filename", ""), "tasks": tasks_with_ids}
+            )
+            candidates.append((document_id, doc.get("filename", ""), tasks_with_ids))
+
+        stats = _case_risk_stats(documents_out)
+        all_tasks = [task for doc in documents_out for task in doc["tasks"]]
+        done_count = sum(1 for task in all_tasks if task.get("status") == "done")
+        nba = _case_next_best_action(candidates)
+
         cases.append(
             {
                 "case_id": snap.id,
                 "name": data.get("name", ""),
                 "created_at": data.get("created_at"),
-                "document_count": document_count,
+                "document_count": len(owned_documents),
+                "task_count": stats["task_count"],
+                "done_count": done_count,
+                "deadline_conflicts_count": len(_detect_deadline_conflicts(documents_out)),
+                "next_best_action_title": nba["task"]["title"] if nba else None,
             }
         )
     cases.sort(key=lambda c: c.get("created_at") or "", reverse=True)

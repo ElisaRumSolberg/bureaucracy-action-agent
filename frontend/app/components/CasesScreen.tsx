@@ -77,29 +77,76 @@ export default function CasesScreen({ onOpen, language }: Props) {
       {cases === null && !error && <p className="mt-6 text-sm text-zinc-400">Loading…</p>}
 
       {cases && cases.length === 0 && (
-        <p className="mt-6 text-sm text-zinc-400">{t("No cases yet.", language)}</p>
+        <div className="mt-6 rounded-2xl border border-dashed border-zinc-300 bg-white/50 p-6 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
+          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            {t("No cases yet", language)}
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-xs text-zinc-500 dark:text-zinc-400">
+            {t("A case groups related documents into one process, with one shared task list and one shared next action.", language)}
+          </p>
+          <div className="mx-auto mt-4 max-w-xs rounded-xl border border-zinc-200 bg-white p-3 text-left dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+              {t("Example", language)}
+            </p>
+            <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-50">Study in Norway</p>
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">3 documents · 8 tasks · 2 deadlines</p>
+            <p className="mt-1 text-xs font-medium text-brand dark:text-indigo-400">
+              {t("Next action:", language)} Upload proof of funds
+            </p>
+          </div>
+        </div>
       )}
 
       <ul className="mt-6 space-y-3">
-        {cases?.map((c) => (
-          <li
-            key={c.case_id}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <div className="min-w-0">
-              <p className="truncate font-medium text-zinc-900 dark:text-zinc-50">{c.name}</p>
-              <p className="mt-0.5 text-xs text-zinc-400">
-                {c.document_count} {c.document_count === 1 ? t("document", language) : t("documents", language)}
-              </p>
-            </div>
-            <button
-              onClick={() => onOpen(c.case_id)}
-              className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 dark:bg-indigo-500"
+        {cases?.map((c) => {
+          const progress = c.task_count > 0 ? Math.round((c.done_count / c.task_count) * 100) : 0;
+          return (
+            <li
+              key={c.case_id}
+              className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
             >
-              {t("Open", language)}
-            </button>
-          </li>
-        ))}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-50">
+                    {c.name}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {c.document_count} {c.document_count === 1 ? t("document", language) : t("documents", language)}
+                    {" · "}
+                    {c.task_count} {t("tasks", language)}
+                    {c.deadline_conflicts_count > 0 && (
+                      <span className="ml-1 text-amber-600 dark:text-amber-400">
+                        · ⚠ {c.deadline_conflicts_count} {t("conflicts", language)}
+                      </span>
+                    )}
+                  </p>
+                  {c.task_count > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="h-1.5 w-32 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                        <div
+                          className="h-full rounded-full bg-brand dark:bg-indigo-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-zinc-400">{progress}%</span>
+                    </div>
+                  )}
+                  {c.next_best_action_title && (
+                    <p className="mt-2 truncate text-xs font-medium text-brand dark:text-indigo-400">
+                      {t("Next action:", language)} {c.next_best_action_title}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => onOpen(c.case_id)}
+                  className="shrink-0 rounded-full bg-brand px-4 py-2 text-xs font-semibold text-white shadow-sm hover:opacity-90 dark:bg-indigo-500"
+                >
+                  {t("Open case", language)}
+                </button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

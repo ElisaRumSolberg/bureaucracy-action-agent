@@ -149,6 +149,10 @@ export interface CaseSummary {
   name: string;
   created_at: string | null;
   document_count: number;
+  task_count: number;
+  done_count: number;
+  deadline_conflicts_count: number;
+  next_best_action_title: string | null;
 }
 
 export interface CaseDocument {
