@@ -88,7 +88,7 @@ export default function CasesScreen({ onOpen, language }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
               {t("Example", language)}
             </p>
-            <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-50">Study in Norway</p>
+            <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-50">Residence Permit Application</p>
             <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">3 documents · 8 tasks · 2 deadlines</p>
             <p className="mt-1 text-xs font-medium text-brand dark:text-indigo-400">
               {t("Next action:", language)} Upload proof of funds
