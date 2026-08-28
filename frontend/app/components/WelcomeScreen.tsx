@@ -65,45 +65,50 @@ export default function WelcomeScreen({ onContinue }: Props) {
     <div className="relative flex-1 overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[-10%] h-[420px] w-[700px] -translate-x-1/2 rounded-full bg-brand opacity-[0.12] blur-[110px] dark:opacity-20"
+        className="pointer-events-none absolute left-1/2 top-[-10%] h-[300px] w-[520px] -translate-x-1/2 rounded-full bg-brand opacity-[0.08] blur-[100px] dark:opacity-[0.14]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute right-[8%] top-[15%] h-[280px] w-[280px] rounded-full bg-amber-400 opacity-[0.08] blur-[100px] dark:opacity-10"
+        className="pointer-events-none absolute right-[10%] top-[12%] h-[180px] w-[180px] rounded-full bg-amber-400 opacity-[0.05] blur-[90px] dark:opacity-[0.07]"
       />
 
-      <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center px-6 py-16 text-center">
+      <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center px-6 pb-16 pt-12 text-center">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-brand backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-indigo-400">
           <Logo className="h-3.5 w-3.5" />
           Document-to-Action Agent
         </div>
 
         <h1 className="max-w-2xl text-3xl font-bold leading-tight tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
-          Turn any official document into a plan you can actually follow.
+          Upload the document. Know exactly what to do next.
         </h1>
         <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-600 sm:text-base dark:text-zinc-400">
-          Gemini reads the document and extracts every task, deadline, and dependency — a deterministic
-          engine ranks what to do first and flags what's at risk, so nothing gets buried in paperwork
-          again.
+          Extracts tasks, deadlines, dependencies, and risks — then continuously tells you the next
+          best action.
+        </p>
+        <p className="mt-3 max-w-xl text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          This is not a document summarizer. It turns bureaucracy into an ordered action plan.
         </p>
 
-        <div className="mt-8">
+        {user && (
+          <div className="mt-5 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
+            {user.photoURL && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.photoURL}
+                alt=""
+                className="h-4 w-4 rounded-full"
+                referrerPolicy="no-referrer"
+              />
+            )}
+            <span>
+              {t("Signed in as", undefined)} {user.displayName ?? user.email}
+            </span>
+          </div>
+        )}
+
+        <div className="mt-4">
           {user ? (
             <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                {user.photoURL && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.photoURL}
-                    alt=""
-                    className="h-6 w-6 rounded-full"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <span>
-                  {t("Signed in as", undefined)} {user.displayName ?? user.email}
-                </span>
-              </div>
               <button
                 onClick={onContinue}
                 className="rounded-full bg-brand px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand/20 transition hover:-translate-y-0.5 hover:opacity-90 dark:bg-indigo-500"
@@ -160,8 +165,24 @@ export default function WelcomeScreen({ onContinue }: Props) {
           )}
         </div>
 
+        {/* Live preview: what the agent tells you right after upload */}
+        <div className="mt-10 w-full max-w-sm rounded-xl border border-zinc-200 bg-white/70 p-4 text-left backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/70">
+          <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-brand dark:text-indigo-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand dark:bg-indigo-400" />
+            Next Best Action
+          </div>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Upload proof of funds</p>
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Deadline: 3 days</p>
+          <div className="mt-3 space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="font-medium text-zinc-700 dark:text-zinc-300">Why now?</p>
+            <p>• Blocks residence application</p>
+            <p>• High priority</p>
+            <p>• Required by 2 documents</p>
+          </div>
+        </div>
+
         {/* How it works */}
-        <div className="mt-20 w-full">
+        <div className="mt-14 w-full">
           <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
             How it works — four steps, fully visible
           </div>
