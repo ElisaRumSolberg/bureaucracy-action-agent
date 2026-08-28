@@ -210,17 +210,34 @@ export default function Dashboard({
           )}
 
           {view === "tasks" && (
-            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+            <div className="mx-auto flex w-full max-w-2xl flex-col">
               {result.tasks.map((task, index) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  index={index}
-                  allTasks={result.tasks}
-                  onToggleDone={onToggleTask}
-                  onSetConditionStatus={onSetConditionStatus}
-                  language={language}
-                />
+                <div key={task.id} className="flex gap-3">
+                  <div className="flex shrink-0 flex-col items-center pt-6">
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                        task.status === "done"
+                          ? "bg-emerald-500"
+                          : index === 0
+                            ? "bg-brand dark:bg-indigo-500"
+                            : "border-2 border-zinc-300 bg-white dark:border-zinc-600 dark:bg-zinc-900"
+                      }`}
+                    />
+                    {index < result.tasks.length - 1 && (
+                      <span className="mt-1 w-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 pb-4">
+                    <TaskCard
+                      task={task}
+                      index={index}
+                      allTasks={result.tasks}
+                      onToggleDone={onToggleTask}
+                      onSetConditionStatus={onSetConditionStatus}
+                      language={language}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
           )}

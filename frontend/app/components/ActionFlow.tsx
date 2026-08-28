@@ -11,17 +11,7 @@ interface Props {
   language?: string;
 }
 
-function NodeChip({
-  task,
-  isNext,
-  wide,
-  step,
-}: {
-  task: Task;
-  isNext: boolean;
-  wide: boolean;
-  step?: number;
-}) {
+function NodeChip({ task, isNext, wide }: { task: Task; isNext: boolean; wide: boolean }) {
   const done = isDone(task);
   return (
     <div
@@ -33,19 +23,6 @@ function NodeChip({
             : "border-zinc-300 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
       }`}
     >
-      {step !== undefined && (
-        <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-            isNext
-              ? "bg-white/25 text-white"
-              : done
-                ? "bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200"
-                : "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
-          }`}
-        >
-          {step}
-        </span>
-      )}
       <span className="shrink-0">{done ? "✓" : "○"}</span>
       <span className="min-w-0 flex-1 truncate" title={task.title}>
         {task.title}
@@ -58,16 +35,31 @@ function CriticalPathView({ tasks, highlightIndex, language }: Props) {
   const path = computeCriticalPath(tasks);
   return (
     <div>
-      <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
         {t("The longest chain of dependent tasks — delaying any one of these delays the whole plan.", language)}
       </p>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col">
         {path.map((taskIndex, i) => (
-          <div key={tasks[taskIndex].id} className="flex items-center gap-2">
-            <NodeChip task={tasks[taskIndex]} isNext={taskIndex === highlightIndex} wide step={i + 1} />
-            {i < path.length - 1 && (
-              <span className="text-lg text-brand dark:text-indigo-400">→</span>
-            )}
+          <div key={tasks[taskIndex].id} className="flex gap-3">
+            <div className="flex shrink-0 flex-col items-center">
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                  taskIndex === highlightIndex
+                    ? "bg-brand text-white dark:bg-indigo-500"
+                    : isDone(tasks[taskIndex])
+                      ? "bg-emerald-200 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200"
+                      : "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+                }`}
+              >
+                {i + 1}
+              </span>
+              {i < path.length - 1 && (
+                <span className="my-1 w-px flex-1 bg-zinc-200 dark:bg-zinc-800" style={{ minHeight: "1.5rem" }} />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 pb-3">
+              <NodeChip task={tasks[taskIndex]} isNext={taskIndex === highlightIndex} wide />
+            </div>
           </div>
         ))}
       </div>
@@ -75,48 +67,58 @@ function CriticalPathView({ tasks, highlightIndex, language }: Props) {
   );
 }
 
-function AllTasksView({ tasks, highlightIndex }: Props) {
+function AllTasksView({ tasks, highlightIndex, language }: Props) {
   const levels = computeLevels(tasks);
   const maxLevel = Math.max(...levels);
-  const columns = Array.from({ length: maxLevel + 1 }, (_, level) =>
+  const rows = Array.from({ length: maxLevel + 1 }, (_, level) =>
     tasks.map((task, index) => ({ task, index })).filter(({ index }) => levels[index] === level)
   );
 
   return (
-    <div className="flex items-start gap-2 overflow-x-auto pb-2">
-      {columns.map((column, columnIndex) => (
-        <div key={columnIndex} className="flex items-center gap-2">
-          <div className="flex flex-col gap-2">
-            {column.map(({ task, index }) => {
-              const done = isDone(task);
-              const blocked = !done && isBlocked(tasks, index);
-              const isNext = index === highlightIndex;
-              return (
-                <div
-                  key={task.id}
-                  className={`flex w-40 items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs ${
-                    done
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
-                      : isNext
-                        ? "border-brand bg-brand text-white shadow-md shadow-brand/30 dark:border-indigo-500 dark:bg-indigo-500"
-                        : blocked
-                          ? "border-dashed border-amber-300 bg-amber-50/60 text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400"
-                          : "border-zinc-300 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                  }`}
-                >
-                  <span className="shrink-0">{done ? "✓" : blocked ? "🔒" : "○"}</span>
-                  <span className="min-w-0 flex-1 truncate" title={task.title}>
-                    {task.title}
-                  </span>
-                </div>
-              );
-            })}
+    <div>
+      <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+        {t("Every task, grouped by how many steps deep it is in the dependency chain.", language)}
+      </p>
+      <div className="flex flex-col">
+        {rows.map((row, rowIndex) => (
+          <div key={rowIndex} className="flex gap-3">
+            <div className="flex shrink-0 flex-col items-center">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                {rowIndex + 1}
+              </span>
+              {rowIndex < rows.length - 1 && (
+                <span className="my-1 w-px flex-1 bg-zinc-200 dark:bg-zinc-800" style={{ minHeight: "1.5rem" }} />
+              )}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-wrap gap-2 pb-3">
+              {row.map(({ task, index }) => {
+                const done = isDone(task);
+                const blocked = !done && isBlocked(tasks, index);
+                const isNext = index === highlightIndex;
+                return (
+                  <div
+                    key={task.id}
+                    className={`flex w-full items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs sm:w-56 ${
+                      done
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                        : isNext
+                          ? "border-brand bg-brand text-white shadow-md shadow-brand/30 dark:border-indigo-500 dark:bg-indigo-500"
+                          : blocked
+                            ? "border-dashed border-amber-300 bg-amber-50/60 text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400"
+                            : "border-zinc-300 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                    }`}
+                  >
+                    <span className="shrink-0">{done ? "✓" : blocked ? "🔒" : "○"}</span>
+                    <span className="min-w-0 flex-1 truncate" title={task.title}>
+                      {task.title}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          {columnIndex < columns.length - 1 && (
-            <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
