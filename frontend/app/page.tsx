@@ -236,6 +236,7 @@ export default function Home() {
           caseId={activeCaseId}
           language={resultLanguage}
           onBack={() => setStage("cases")}
+          onGoToDashboard={() => setStage(result ? "results" : "welcome")}
           onDeleted={() => {
             setActiveCaseId(null);
             setStage("cases");

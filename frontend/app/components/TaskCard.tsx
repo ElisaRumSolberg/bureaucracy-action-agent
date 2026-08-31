@@ -50,6 +50,9 @@ interface Props {
   onToggleDone: (task: Task) => void;
   onSetConditionStatus: (task: Task, conditionStatus: ConditionStatus) => void;
   language?: string;
+  /** Which document this task came from — shown only when set, e.g. inside
+   * a Case where tasks from several documents share one list. */
+  sourceLabel?: string;
 }
 
 export default function TaskCard({
@@ -59,6 +62,7 @@ export default function TaskCard({
   onToggleDone,
   onSetConditionStatus,
   language,
+  sourceLabel,
 }: Props) {
   const dependencyTitles = task.dependencies.map(
     (depIndex) => allTasks[depIndex]?.title ?? `Task ${depIndex + 1}`
@@ -177,6 +181,11 @@ export default function TaskCard({
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
         {task.description}
       </p>
+      {sourceLabel && (
+        <p className="mt-1 truncate text-xs text-zinc-400 dark:text-zinc-500">
+          {t("From:", language)} {sourceLabel}
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">

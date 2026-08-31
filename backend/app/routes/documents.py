@@ -649,6 +649,13 @@ def update_document_case(
             raise HTTPException(status_code=404, detail="Case not found.")
 
     db.collection("documents").document(document_id).update({"case_id": body.case_id})
+
+    if body.case_id:
+        case_name = case_snap.to_dict().get("name", "")
+        log_event(db, document_id, "document_added_to_case", f'Document added to case "{case_name}".')
+    else:
+        log_event(db, document_id, "document_removed_from_case", "Document removed from its case.")
+
     return {"document_id": document_id, "case_id": body.case_id}
 
 

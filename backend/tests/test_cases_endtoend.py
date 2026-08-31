@@ -14,6 +14,36 @@ def _create_case(client, name="Study in Norway", owner="owner-1"):
     return response.json()["case_id"]
 
 
+def test_assigning_a_document_to_a_case_logs_an_activity_event(client, fake_db):
+    case_id = _create_case(client, name="Study in Norway")
+    seed_document(fake_db, "doc_a", "owner-1", [{"title": "Task A"}])
+
+    client.patch("/documents/doc_a/case", json={"case_id": case_id}, headers={"X-Owner-Id": "owner-1"})
+
+    events = client.get("/documents/doc_a/events", headers={"X-Owner-Id": "owner-1"}).json()["events"]
+    messages = [e["message"] for e in events]
+    assert any("Study in Norway" in m for m in messages)
+
+
+def test_reassigning_the_same_document_to_the_same_case_is_idempotent(client, fake_db):
+    """Retrying the same attach call (e.g. after a flaky network response)
+    must not create duplicate case membership — there's nothing to
+    duplicate into since membership is just a document's own case_id
+    field, but this locks that in as a guarantee, not an accident."""
+    case_id = _create_case(client)
+    seed_document(fake_db, "doc_a", "owner-1", [{"title": "Task A"}])
+
+    for _ in range(2):
+        response = client.patch(
+            "/documents/doc_a/case", json={"case_id": case_id}, headers={"X-Owner-Id": "owner-1"}
+        )
+        assert response.status_code == 200
+
+    detail = client.get(f"/cases/{case_id}", headers={"X-Owner-Id": "owner-1"}).json()
+    assert detail["stats"]["document_count"] == 1
+    assert len(detail["documents"]) == 1
+
+
 def test_creating_a_case_with_a_blank_name_is_rejected(client, fake_db):
     response = client.post("/cases", json={"name": "   "}, headers={"X-Owner-Id": "owner-1"})
     assert response.status_code == 400

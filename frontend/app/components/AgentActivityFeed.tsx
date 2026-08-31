@@ -33,6 +33,8 @@ const EVENT_ICON: Record<string, string> = {
   task_unblocked: "🔓",
   condition_status_changed: "❓",
   pipeline_failed: "⚠️",
+  document_added_to_case: "🗂️",
+  document_removed_from_case: "🗂️",
 };
 
 export default function AgentActivityFeed({

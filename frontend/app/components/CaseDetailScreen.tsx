@@ -9,6 +9,7 @@ import {
   listDocuments,
   updateConditionStatus,
   updateTaskStatus,
+  uploadDocument,
   type CaseDetail,
   type ConditionStatus,
   type DocumentSummary,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/api";
 import TaskCard from "./TaskCard";
 import RiskRadar from "./RiskRadar";
+import UploadScreen from "./UploadScreen";
+import ProcessingScreen from "./ProcessingScreen";
 import { t } from "@/lib/uiTranslations";
 
 interface Props {
@@ -23,6 +26,9 @@ interface Props {
   onBack: () => void;
   onDeleted: () => void;
   onOpenDocument: (documentId: string) => void;
+  /** Jumps to the main Dashboard (the current document if one's open, else
+   * Welcome) — first step of the Dashboard / Cases / <case name> breadcrumb. */
+  onGoToDashboard: () => void;
   language?: string;
 }
 
@@ -31,6 +37,7 @@ export default function CaseDetailScreen({
   onBack,
   onDeleted,
   onOpenDocument,
+  onGoToDashboard,
   language,
 }: Props) {
   const [detail, setDetail] = useState<CaseDetail | null>(null);
@@ -38,6 +45,9 @@ export default function CaseDetailScreen({
   const [unassigned, setUnassigned] = useState<DocumentSummary[]>([]);
   const [selectedToAdd, setSelectedToAdd] = useState("");
   const [busy, setBusy] = useState(false);
+  const [addPanel, setAddPanel] = useState<"none" | "upload" | "existing">("none");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   function refresh() {
     getCase(caseId)
@@ -56,11 +66,36 @@ export default function CaseDetailScreen({
     try {
       await assignDocumentToCase(selectedToAdd, caseId);
       setSelectedToAdd("");
+      setAddPanel("none");
       refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not add this document.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleUploadNewDocument(file: File, targetLanguage?: string) {
+    setUploading(true);
+    setUploadError(null);
+    try {
+      // Reuses the exact same upload call the main Upload screen uses —
+      // Gemini extraction, deterministic validation, and save all happen
+      // here, unchanged. Only once that document actually exists do we
+      // attach it to this case, so a failed upload never leaves a broken
+      // or partial document attached to the case.
+      const result = await uploadDocument(file, targetLanguage);
+      await assignDocumentToCase(result.document_id, caseId);
+      setAddPanel("none");
+      refresh();
+    } catch (err) {
+      // Whether the upload itself failed or the follow-up attach call did,
+      // surface it rather than silently pretending the document is now
+      // part of the case — the case's own state is untouched either way
+      // since refresh() is only called after both steps succeed.
+      setUploadError(err instanceof ApiError ? err.message : "Could not upload this document.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -132,13 +167,26 @@ export default function CaseDetailScreen({
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <button
-            onClick={onBack}
-            className="text-sm font-medium text-zinc-500 hover:text-brand dark:text-zinc-400 dark:hover:text-indigo-400"
-          >
-            {t("← Back to cases", language)}
-          </button>
+        <div className="min-w-0">
+          <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden text-sm text-zinc-500 dark:text-zinc-400">
+            <button
+              onClick={onGoToDashboard}
+              className="shrink-0 font-medium hover:text-brand dark:hover:text-indigo-400"
+            >
+              {t("Dashboard", language)}
+            </button>
+            <span className="shrink-0 text-zinc-300 dark:text-zinc-700">/</span>
+            <button
+              onClick={onBack}
+              className="shrink-0 font-medium hover:text-brand dark:hover:text-indigo-400"
+            >
+              {t("Cases", language)}
+            </button>
+            <span className="shrink-0 text-zinc-300 dark:text-zinc-700">/</span>
+            <span className="min-w-0 truncate font-medium text-zinc-700 dark:text-zinc-300" title={detail.name}>
+              {detail.name}
+            </span>
+          </nav>
           <h1 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
             {detail.name}
           </h1>
@@ -237,26 +285,79 @@ export default function CaseDetailScreen({
         </div>
       )}
 
-      <div className="mt-6 flex items-center gap-2">
-        <select
-          value={selectedToAdd}
-          onChange={(e) => setSelectedToAdd(e.target.value)}
-          className="flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-brand focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        >
-          <option value="">{t("Add an existing document…", language)}</option>
-          {unassigned.map((doc) => (
-            <option key={doc.document_id} value={doc.document_id}>
-              {doc.filename}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleAddDocument}
-          disabled={!selectedToAdd || busy}
-          className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-indigo-500"
-        >
-          {t("Add", language)}
-        </button>
+      <div className="mt-6">
+        {addPanel === "none" && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setAddPanel("upload")}
+              className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 dark:bg-indigo-500"
+            >
+              + {t("Upload new document", language)}
+            </button>
+            <button
+              onClick={() => setAddPanel("existing")}
+              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              {t("Add existing document", language)}
+            </button>
+          </div>
+        )}
+
+        {addPanel === "upload" && (
+          <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t("Upload new document", language)}
+              </p>
+              {!uploading && (
+                <button
+                  onClick={() => {
+                    setAddPanel("none");
+                    setUploadError(null);
+                  }}
+                  className="text-xs font-medium text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  {t("Cancel", language)}
+                </button>
+              )}
+            </div>
+            {uploading ? (
+              <ProcessingScreen />
+            ) : (
+              <UploadScreen onFileSelected={handleUploadNewDocument} errorMessage={uploadError} />
+            )}
+          </div>
+        )}
+
+        {addPanel === "existing" && (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedToAdd}
+              onChange={(e) => setSelectedToAdd(e.target.value)}
+              className="flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm text-zinc-900 focus:border-brand focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            >
+              <option value="">{t("Add an existing document…", language)}</option>
+              {unassigned.map((doc) => (
+                <option key={doc.document_id} value={doc.document_id}>
+                  {doc.filename}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleAddDocument}
+              disabled={!selectedToAdd || busy}
+              className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-indigo-500"
+            >
+              {t("Add", language)}
+            </button>
+            <button
+              onClick={() => setAddPanel("none")}
+              className="shrink-0 text-xs font-medium text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              {t("Cancel", language)}
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -288,17 +389,35 @@ export default function CaseDetailScreen({
                 {t("Remove from case", language)}
               </button>
             </div>
-            <div className="mt-3 grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+            <div className="mt-3 flex flex-col">
               {doc.tasks.map((task, index) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  index={index}
-                  allTasks={doc.tasks}
-                  onToggleDone={handleToggleTask}
-                  onSetConditionStatus={handleSetConditionStatus}
-                  language={language}
-                />
+                <div key={task.id} className="flex gap-3">
+                  <div className="flex shrink-0 flex-col items-center pt-6">
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                        task.status === "done"
+                          ? "bg-emerald-500"
+                          : nba?.task.id === task.id
+                            ? "bg-brand dark:bg-indigo-500"
+                            : "border-2 border-zinc-300 bg-white dark:border-zinc-600 dark:bg-zinc-900"
+                      }`}
+                    />
+                    {index < doc.tasks.length - 1 && (
+                      <span className="mt-1 w-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 pb-4">
+                    <TaskCard
+                      task={task}
+                      index={index}
+                      allTasks={doc.tasks}
+                      onToggleDone={handleToggleTask}
+                      onSetConditionStatus={handleSetConditionStatus}
+                      language={language}
+                      sourceLabel={doc.filename}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
