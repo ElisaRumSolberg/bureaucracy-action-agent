@@ -176,11 +176,18 @@ export default function CaseDetailScreen({
       {nba ? (
         <div className="mt-5 rounded-2xl border border-zinc-200 border-l-4 border-l-brand bg-brand-light p-5 dark:border-zinc-800 dark:border-l-indigo-500 dark:bg-indigo-950/30">
           <p className="text-xs font-semibold uppercase tracking-wide text-brand dark:text-indigo-400">
-            {t("Recommended next action", language)}
+            {nba.is_conditional_pick ? t("If this applies to you", language) : t("Recommended next action", language)}
           </p>
           <h3 className="mt-1 break-words text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {nba.task.title}
+            {nba.is_conditional_pick
+              ? `${t("Confirm whether this applies:", language)} ${nba.task.title}`
+              : nba.task.title}
           </h3>
+          {nba.is_conditional_pick && nba.task.condition && (
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              {t("Condition:", language)} {nba.task.condition}
+            </p>
+          )}
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
             {t("From:", language)} {nba.filename}
           </p>

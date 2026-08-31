@@ -181,7 +181,12 @@ export interface CaseDetail {
   case_id: string;
   name: string;
   documents: CaseDocument[];
-  next_best_action: { document_id: string; filename: string; task: Task } | null;
+  next_best_action: {
+    document_id: string;
+    filename: string;
+    task: Task;
+    is_conditional_pick: boolean;
+  } | null;
   stats: CaseStats;
   deadline_conflicts: DeadlineConflict[];
 }

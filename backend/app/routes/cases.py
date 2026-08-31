@@ -63,7 +63,16 @@ def _case_next_best_action(candidates: list[tuple[str, str, list[dict]]]) -> dic
         return None
     ranked.sort(key=lambda r: r[:3])
     _, _, _, document_id, filename, task = ranked[0]
-    return {"document_id": document_id, "filename": filename, "task": task}
+    # Mirrors NextBestAction.tsx's isConditionalPick: only true when the
+    # picked task is still an unconfirmed conditional — i.e. it's a
+    # clarification the user owes the agent, not a task to act on yet.
+    is_conditional_pick = bool(task.get("is_conditional")) and task.get("condition_status") == "unknown"
+    return {
+        "document_id": document_id,
+        "filename": filename,
+        "task": task,
+        "is_conditional_pick": is_conditional_pick,
+    }
 
 
 def _case_risk_stats(documents_out: list[dict]) -> dict:
