@@ -3,10 +3,21 @@
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
 import { auth, onAuthStateChanged, signInWithGoogle, signOut, type User } from "@/lib/firebase";
-import { t } from "@/lib/uiTranslations";
+import { listCases, type CaseSummary } from "@/lib/api";
+import { t, tProgressDone } from "@/lib/uiTranslations";
 
 interface Props {
   onContinue: () => void;
+  onGoToDocuments: () => void;
+  onGoToCases: () => void;
+  onResumeCase: (caseId: string) => void;
+}
+
+/** A case is "active" (resumable) as long as it isn't fully done — a case
+ * with zero tasks yet still counts as active, it just has nothing to show
+ * as a next action yet. */
+function isActiveCase(c: CaseSummary): boolean {
+  return !(c.task_count > 0 && c.done_count === c.task_count);
 }
 
 const STEPS = [
@@ -55,11 +66,38 @@ const FEATURES = [
   },
 ];
 
-export default function WelcomeScreen({ onContinue }: Props) {
+export default function WelcomeScreen({ onContinue, onGoToDocuments, onGoToCases, onResumeCase }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  // undefined = not fetched yet (or fetch failed / user signed out) — kept
+  // hidden in that state rather than showing a skeleton or an error, per
+  // "keep Open Dashboard functional, silently omit Recent Work" for
+  // fetch failures, and "don't show an empty placeholder" for guests.
+  const [recentCase, setRecentCase] = useState<CaseSummary | undefined>(undefined);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
+
+  useEffect(() => {
+    if (!user) {
+      setRecentCase(undefined);
+      return;
+    }
+    let cancelled = false;
+    listCases()
+      .then((cases) => {
+        if (cancelled) return;
+        // Already sorted most-recently-created first by the backend; there's
+        // no updated_at to prefer, so "most recently updated" falls back to
+        // "most recently created" exactly as specced.
+        setRecentCase(cases.find(isActiveCase));
+      })
+      .catch(() => {
+        if (!cancelled) setRecentCase(undefined);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <div className="relative flex-1 overflow-hidden">
@@ -73,6 +111,49 @@ export default function WelcomeScreen({ onContinue }: Props) {
       />
 
       <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center px-6 pb-16 pt-12 text-center">
+        {user && (
+          <div className="mb-8 flex w-full flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-4 text-left dark:border-zinc-800">
+            <nav className="flex items-center gap-1">
+              <button
+                onClick={onContinue}
+                className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-brand dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+              >
+                {t("Dashboard", undefined)}
+              </button>
+              <button
+                onClick={onGoToDocuments}
+                className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-brand dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+              >
+                {t("Documents", undefined)}
+              </button>
+              <button
+                onClick={onGoToCases}
+                className="rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-brand dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+              >
+                {t("Cases", undefined)}
+              </button>
+            </nav>
+            <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+              {user.photoURL && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="h-6 w-6 rounded-full"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <span className="hidden sm:inline">{user.displayName ?? user.email}</span>
+              <button
+                onClick={() => signOut()}
+                className="font-medium hover:text-brand dark:hover:text-indigo-400"
+              >
+                {t("Sign out", undefined)}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-brand backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-indigo-400">
           <Logo className="h-3.5 w-3.5" />
           Document-to-Action Agent
@@ -88,23 +169,6 @@ export default function WelcomeScreen({ onContinue }: Props) {
         <p className="mt-3 max-w-xl text-sm font-medium text-zinc-800 dark:text-zinc-200">
           This is not a document summarizer. It turns bureaucracy into an ordered action plan.
         </p>
-
-        {user && (
-          <div className="mt-5 flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
-            {user.photoURL && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.photoURL}
-                alt=""
-                className="h-4 w-4 rounded-full"
-                referrerPolicy="no-referrer"
-              />
-            )}
-            <span>
-              {t("Signed in as", undefined)} {user.displayName ?? user.email}
-            </span>
-          </div>
-        )}
 
         <div className="mt-4">
           {user ? (
@@ -164,6 +228,33 @@ export default function WelcomeScreen({ onContinue }: Props) {
             </div>
           )}
         </div>
+
+        {user && recentCase && (
+          <div className="mt-6 w-full max-w-md rounded-xl border border-zinc-200 bg-white/70 p-4 text-left backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/70">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              {t("Recent work", undefined)}
+            </p>
+            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              {recentCase.name}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+              {recentCase.task_count > 0
+                ? tProgressDone(recentCase.done_count, recentCase.task_count, undefined)
+                : t("No tasks yet", undefined)}
+            </p>
+            <p className="mt-1 truncate text-xs font-medium text-brand dark:text-indigo-400">
+              {recentCase.next_best_action_title
+                ? `${t("Next:", undefined)} ${recentCase.next_best_action_title}`
+                : t("Open case to continue", undefined)}
+            </p>
+            <button
+              onClick={() => onResumeCase(recentCase.case_id)}
+              className="mt-3 rounded-full bg-brand px-4 py-1.5 text-xs font-medium text-white hover:opacity-90 dark:bg-indigo-500"
+            >
+              {t("Resume case", undefined)} →
+            </button>
+          </div>
+        )}
 
         {/* Live preview: what the agent tells you right after upload */}
         <div className="mt-10 w-full max-w-md rounded-2xl border-2 border-brand/30 bg-white/80 p-5 text-left shadow-lg shadow-brand/10 backdrop-blur dark:border-indigo-500/30 dark:bg-zinc-900/80">

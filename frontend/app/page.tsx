@@ -214,7 +214,17 @@ export default function Home() {
         </div>
       </header>
 
-      {stage === "welcome" && <WelcomeScreen onContinue={() => setStage("upload")} />}
+      {stage === "welcome" && (
+        <WelcomeScreen
+          onContinue={() => setStage("upload")}
+          onGoToDocuments={() => setStage("history")}
+          onGoToCases={() => setStage("cases")}
+          onResumeCase={(caseId) => {
+            setActiveCaseId(caseId);
+            setStage("casedetail");
+          }}
+        />
+      )}
       {stage === "upload" && (
         <UploadScreen onFileSelected={handleFileSelected} errorMessage={errorMessage} />
       )}
