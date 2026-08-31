@@ -121,6 +121,33 @@ def test_not_applicable_task_does_not_count_as_blocked_or_unanswered():
     assert stats["unanswered_conditions"] == 0
 
 
+def test_not_applicable_task_with_a_near_deadline_does_not_count_as_approaching():
+    """A conditional task the user has excluded still carries whatever
+    deadline was extracted from the document — that deadline must not
+    leak into 'approaching deadlines' just because the field is still
+    populated on an otherwise-resolved task."""
+    from datetime import date, timedelta
+
+    near_deadline = (date.today() + timedelta(days=2)).isoformat()
+    documents_out = [
+        doc(
+            "doc_a",
+            "a.pdf",
+            [
+                task(
+                    "t_a_0",
+                    "Excluded",
+                    deadline=near_deadline,
+                    is_conditional=True,
+                    condition_status="not_applicable",
+                )
+            ],
+        )
+    ]
+    stats = _case_risk_stats(documents_out)
+    assert stats["approaching_deadlines"] == 0
+
+
 def test_missing_information_does_not_crash_stats_when_absent():
     """A document dict missing the 'missing_information' key entirely (e.g.
     an older document) must not crash the aggregation."""

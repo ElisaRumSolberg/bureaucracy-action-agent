@@ -12,7 +12,7 @@ import UpcomingDeadlines from "./UpcomingDeadlines";
 import GuidanceView from "./GuidanceView";
 import WorkflowCompleteSummary from "./WorkflowCompleteSummary";
 import RiskRadar from "./RiskRadar";
-import { computeRiskStats, getNextBestAction, isDone } from "@/lib/taskGraph";
+import { computeRiskStats, getNextBestAction, isApplicable, isDone } from "@/lib/taskGraph";
 import { t, tDetectedCount, tProgressDone } from "@/lib/uiTranslations";
 
 interface Props {
@@ -48,8 +48,9 @@ export default function Dashboard({
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
   const [summaryOpen, setSummaryOpen] = useState(true);
 
-  const doneCount = result.tasks.filter((task) => task.status === "done").length;
-  const allDone = result.tasks.length > 0 && result.tasks.every(isDone);
+  const applicableTasks = result.tasks.filter(isApplicable);
+  const applicableDoneCount = applicableTasks.filter(isDone).length;
+  const allDone = applicableTasks.length > 0 && applicableTasks.every(isDone);
   const deadlineCount = result.tasks.filter((task) => task.deadline).length;
   const dependencyCount = result.tasks.filter((task) => task.dependencies.length > 0).length;
   const nextBestAction = getNextBestAction(result.tasks);
@@ -88,7 +89,7 @@ export default function Dashboard({
               { label: t("Deadlines", language), value: deadlineCount },
               { label: t("Dependencies", language), value: dependencyCount },
               { label: t("Missing details", language), value: result.missing_information.length },
-              { label: t("Progress", language), value: tProgressDone(doneCount, result.tasks.length, language) },
+              { label: t("Progress", language), value: tProgressDone(applicableDoneCount, applicableTasks.length, language) },
             ].map((stat) => (
               <div
                 key={stat.label}

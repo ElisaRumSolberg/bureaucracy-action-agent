@@ -99,7 +99,7 @@ def _case_risk_stats(documents_out: list[dict]) -> dict:
             if task.get("is_conditional") and task.get("condition_status") == "unknown":
                 unanswered_conditions += 1
             deadline = task.get("deadline")
-            if deadline and not done:
+            if deadline and not done and not excluded:
                 try:
                     days = (date.fromisoformat(deadline) - today).days
                 except ValueError:

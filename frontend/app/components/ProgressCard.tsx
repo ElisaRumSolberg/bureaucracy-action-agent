@@ -1,5 +1,5 @@
 import type { Task } from "@/lib/api";
-import { isBlocked, isDone } from "@/lib/taskGraph";
+import { isApplicable, isBlocked, isDone } from "@/lib/taskGraph";
 import { t } from "@/lib/uiTranslations";
 
 interface Props {
@@ -8,9 +8,12 @@ interface Props {
 }
 
 export default function ProgressCard({ tasks, language }: Props) {
-  const total = tasks.length;
-  const doneCount = tasks.filter(isDone).length;
-  const blockedCount = tasks.filter((task, i) => !isDone(task) && isBlocked(tasks, i)).length;
+  const applicableTasks = tasks.filter(isApplicable);
+  const total = applicableTasks.length;
+  const doneCount = applicableTasks.filter(isDone).length;
+  const blockedCount = tasks.filter(
+    (task, i) => isApplicable(task) && !isDone(task) && isBlocked(tasks, i)
+  ).length;
   const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
 
   const circumference = 2 * Math.PI * 40;

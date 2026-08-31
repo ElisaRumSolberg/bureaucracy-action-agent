@@ -18,6 +18,14 @@ export function isSatisfied(task: Task): boolean {
   return isDone(task) || isConditionNotApplicable(task);
 }
 
+/** A task that still counts toward "what's left to do" — excludes
+ * conditional tasks confirmed not to apply, so progress, deadlines, and
+ * risk counts never penalize the user for requirements that don't apply
+ * to them. Reused everywhere instead of re-deriving the same check. */
+export function isApplicable(task: Task): boolean {
+  return !isConditionNotApplicable(task);
+}
+
 export function isBlocked(tasks: Task[], index: number): boolean {
   const task = tasks[index];
   return task.dependencies.some((depIndex) => !isSatisfied(tasks[depIndex]));
@@ -55,7 +63,7 @@ export function computeRiskStats(tasks: Task[], missingInformationCount: number)
     if (task.is_conditional && task.condition_status === "unknown") {
       unansweredConditions += 1;
     }
-    if (task.deadline && !isDone(task)) {
+    if (task.deadline && !isDone(task) && !isConditionNotApplicable(task)) {
       const due = new Date(`${task.deadline}T00:00:00`);
       const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
       if (days >= 0 && days <= APPROACHING_DEADLINE_DAYS) {

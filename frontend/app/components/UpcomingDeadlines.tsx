@@ -1,5 +1,5 @@
 import type { Task } from "@/lib/api";
-import { isDone } from "@/lib/taskGraph";
+import { isApplicable, isDone } from "@/lib/taskGraph";
 import { t } from "@/lib/uiTranslations";
 import { translateReason } from "@/lib/reasonTranslations";
 
@@ -23,7 +23,7 @@ function daysLabel(deadline: string): string {
 
 export default function UpcomingDeadlines({ tasks, language, limit = 5 }: Props) {
   const upcoming = tasks
-    .filter((task) => !isDone(task) && task.deadline)
+    .filter((task) => !isDone(task) && isApplicable(task) && task.deadline)
     .sort((a, b) => (a.deadline! < b.deadline! ? -1 : a.deadline! > b.deadline! ? 1 : 0))
     .slice(0, limit);
 
