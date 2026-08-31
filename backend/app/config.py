@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     google_cloud_project: str = ""
     google_cloud_location: str = "global"
     firestore_database: str = "(default)"
-    gemini_model: str = "gemini-3-flash-preview"
+    gemini_model: str = "gemini-3.5-flash"
     allowed_origins: str = "http://localhost:3000"
 
     @property

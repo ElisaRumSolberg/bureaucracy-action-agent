@@ -190,7 +190,7 @@ code first, never left to the model to invent.
 
 - Google ADK (`LlmAgent` + `FunctionTool`, see `backend/app/agent/adk_agent.py`) —
   real agent orchestration, not a bare Gemini call.
-- Gemini 3 Flash (`gemini-3-flash-preview`) via Vertex AI — served from the
+- Gemini 3.5 Flash (`gemini-3.5-flash`) via Vertex AI — served from the
   `global` location, not the regional endpoint the rest of this project
   uses.
 - Firestore (task/document/event/case storage)
@@ -275,7 +275,7 @@ gcloud run deploy bureaucracy-agent-api \
   --source . \
   --region=us-central1 \
   --service-account=bureaucracy-agent-run@bureaucracy-action-agent.iam.gserviceaccount.com \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=bureaucracy-action-agent,GOOGLE_CLOUD_LOCATION=global,FIRESTORE_DATABASE=(default),GEMINI_MODEL=gemini-3-flash-preview" \
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=bureaucracy-action-agent,GOOGLE_CLOUD_LOCATION=global,FIRESTORE_DATABASE=(default),GEMINI_MODEL=gemini-3.5-flash" \
   --allow-unauthenticated
 ```
 
