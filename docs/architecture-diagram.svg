@@ -44,14 +44,14 @@
 
   <!-- Gemini -->
   <rect x="900" y="145" width="220" height="90" rx="12" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
-  <text x="1010" y="178" text-anchor="middle" font-size="16" font-weight="600" fill="#713f12">Gemini 3 Flash</text>
+  <text x="1010" y="178" text-anchor="middle" font-size="16" font-weight="600" fill="#713f12">Gemini 3.5 Flash</text>
   <text x="1010" y="198" text-anchor="middle" font-size="12" fill="#854d0e">via Vertex AI</text>
   <text x="1010" y="216" text-anchor="middle" font-size="12" fill="#854d0e">location: global</text>
 
   <!-- Firestore -->
   <rect x="900" y="290" width="220" height="110" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
   <text x="1010" y="318" text-anchor="middle" font-size="16" font-weight="600" fill="#14532d">Firestore</text>
-  <text x="1010" y="338" text-anchor="middle" font-size="12" fill="#166534">documents / tasks</text>
+  <text x="1010" y="338" text-anchor="middle" font-size="11" fill="#166534">documents / tasks / cases</text>
   <text x="1010" y="356" text-anchor="middle" font-size="12" fill="#166534">task_guidance (cache)</text>
   <text x="1010" y="374" text-anchor="middle" font-size="12" fill="#166534">documents/{id}/events</text>
 
