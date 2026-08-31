@@ -140,6 +140,35 @@ class _FakeSubDocumentRef(FakeDocumentRef):
         return self._client._subcollections.setdefault(key, {})
 
 
+class FakeWriteBatch:
+    """Mirrors google.cloud.firestore.WriteBatch: queues set/update/delete
+    calls and only applies them on .commit(), so a test can monkeypatch
+    commit() to fail and assert nothing was written — the same atomicity
+    guarantee a real Firestore batch gives production code."""
+
+    def __init__(self):
+        self._ops: list[tuple[str, object, dict | None]] = []
+
+    def set(self, ref, data: dict) -> None:
+        self._ops.append(("set", ref, data))
+
+    def update(self, ref, data: dict) -> None:
+        self._ops.append(("update", ref, data))
+
+    def delete(self, ref) -> None:
+        self._ops.append(("delete", ref, None))
+
+    def commit(self) -> None:
+        for kind, ref, data in self._ops:
+            if kind == "set":
+                ref.set(data)
+            elif kind == "update":
+                ref.update(data)
+            else:
+                ref.delete()
+        self._ops = []
+
+
 class FakeFirestoreClient:
     def __init__(self):
         self._collections: dict[str, dict] = {}
@@ -147,3 +176,6 @@ class FakeFirestoreClient:
 
     def collection(self, name: str) -> FakeCollectionRef:
         return FakeCollectionRef(self, name)
+
+    def batch(self) -> FakeWriteBatch:
+        return FakeWriteBatch()

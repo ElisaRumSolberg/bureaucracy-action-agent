@@ -663,13 +663,19 @@ def delete_document(document_id: str, owner_id: str | None = Depends(resolve_own
     if existing_owner and existing_owner != owner_id:
         raise HTTPException(status_code=404, detail="Document not found.")
 
+    # A single atomic batch — either the whole document (tasks, guidance,
+    # events, the document itself) is gone, or none of it is, so a mid-way
+    # Firestore failure can never leave an orphaned partial document behind.
+    batch = db.batch()
+
     task_snaps = list(db.collection("tasks").where("documentId", "==", document_id).stream())
     for task_snap in task_snaps:
-        db.collection("task_guidance").document(task_snap.id).delete()
-        task_snap.reference.delete()
+        batch.delete(db.collection("task_guidance").document(task_snap.id))
+        batch.delete(task_snap.reference)
 
     for event_snap in doc_ref.collection("events").stream():
-        event_snap.reference.delete()
+        batch.delete(event_snap.reference)
 
-    doc_ref.delete()
+    batch.delete(doc_ref)
+    batch.commit()
     return {"document_id": document_id, "deleted": True}

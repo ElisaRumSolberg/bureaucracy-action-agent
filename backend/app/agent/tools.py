@@ -108,18 +108,22 @@ def save_tasks(document_id: str, validation: ValidationResult) -> SaveTasksResul
     """
     db = get_firestore_client()
 
-    # Clear out any previously-saved tasks for this document first, so a
-    # retry that produces a different task count doesn't leave stale docs
-    # behind from a prior attempt's longer task list.
+    # Clear out any previously-saved tasks for this document and write the
+    # new ones as a single atomic batch — either all of it lands or none of
+    # it does, so a mid-write Firestore failure can never leave a document
+    # with a half-deleted, half-new task list.
+    batch = db.batch()
+
     existing = db.collection("tasks").where("documentId", "==", document_id).stream()
     for doc in existing:
-        doc.reference.delete()
+        batch.delete(doc.reference)
 
     saved_ids: list[str] = []
 
     for index, task in enumerate(validation.tasks):
         task_id = f"task_{document_id}_{index}"
-        db.collection("tasks").document(task_id).set(
+        batch.set(
+            db.collection("tasks").document(task_id),
             {
                 "documentId": document_id,
                 **task.model_dump(),
@@ -132,8 +136,10 @@ def save_tasks(document_id: str, validation: ValidationResult) -> SaveTasksResul
                 "original_description": task.description,
                 "original_condition": task.condition,
                 "original_required_documents": task.required_documents,
-            }
+            },
         )
         saved_ids.append(task_id)
+
+    batch.commit()
 
     return SaveTasksResult(success=True, saved_task_ids=saved_ids)

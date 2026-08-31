@@ -119,6 +119,20 @@ const STRINGS: Record<string, Record<UILanguage, string>> = {
     Français: "Conflits d'horaire",
     Español: "Conflictos de calendario",
   },
+  "Same deadline on multiple documents": {
+    Türkçe: "Birden fazla belgede aynı son tarih",
+    Norsk: "Samme frist på flere dokumenter",
+    Deutsch: "Gleiche Frist bei mehreren Dokumenten",
+    Français: "Même échéance sur plusieurs documents",
+    Español: "Misma fecha límite en varios documentos",
+  },
+  "same-day deadlines": {
+    Türkçe: "aynı günde son tarih",
+    Norsk: "frister samme dag",
+    Deutsch: "Fristen am selben Tag",
+    Français: "échéances le même jour",
+    Español: "plazos el mismo día",
+  },
   "Case Overview": {
     Türkçe: "Dosya Özeti",
     Norsk: "Sakoversikt",
@@ -563,6 +577,13 @@ const STRINGS: Record<string, Record<UILanguage, string>> = {
     Deutsch: "Falls dies auf Sie zutrifft",
     Français: "Si cela s'applique à vous",
     Español: "Si esto te aplica",
+  },
+  "Confirm whether this applies:": {
+    Türkçe: "Şunun geçerli olup olmadığını onaylayın:",
+    Norsk: "Bekreft om dette gjelder:",
+    Deutsch: "Bestätigen Sie, ob dies zutrifft:",
+    Français: "Confirmez si cela s'applique :",
+    Español: "Confirma si esto aplica:",
   },
   "Condition:": {
     Türkçe: "Koşul:",

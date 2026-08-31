@@ -208,7 +208,10 @@ export default function CaseDetailScreen({
       {detail.deadline_conflicts.length > 0 && (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950">
           <p className="text-sm font-semibold text-red-700 dark:text-red-300">
-            ⚠ {t("Scheduling conflicts", language)}
+            ⚠ {t("Same deadline on multiple documents", language)}
+          </p>
+          <p className="mt-0.5 text-xs text-red-600/80 dark:text-red-400/80">
+            {t("Tasks from different documents happen to fall on the same date — worth double-checking they don't need to happen in a specific order.", language)}
           </p>
           <ul className="mt-2 space-y-2 text-sm text-red-700 dark:text-red-300">
             {detail.deadline_conflicts.map((conflict) => (

@@ -116,7 +116,7 @@ export default function CasesScreen({ onOpen, language }: Props) {
                     {c.task_count} {t("tasks", language)}
                     {c.deadline_conflicts_count > 0 && (
                       <span className="ml-1 text-amber-600 dark:text-amber-400">
-                        · ⚠ {c.deadline_conflicts_count} {t("conflicts", language)}
+                        · ⚠ {c.deadline_conflicts_count} {t("same-day deadlines", language)}
                       </span>
                     )}
                   </p>
