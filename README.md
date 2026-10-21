@@ -1,5 +1,7 @@
 # Bureaucracy Action Agent
 
+[![Tests](https://github.com/ElisaRumSolberg/bureaucracy-action-agent/actions/workflows/test.yml/badge.svg)](https://github.com/ElisaRumSolberg/bureaucracy-action-agent/actions/workflows/test.yml)
+
 > An autonomous action agent that turns complex official documents into a
 > persistent workflow — it tracks dependencies, reacts to your progress, and
 > continuously decides what you should do next.
